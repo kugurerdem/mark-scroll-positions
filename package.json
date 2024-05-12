@@ -1,0 +1,22 @@
+{
+  "name": "scroller",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "parcel serve --no-cache -p 8080 src/manifest.json --config @parcel/config-webextension",
+    "build": "rm -rf dist && parcel build --no-cache --no-scope-hoist src/manifest.json --config @parcel/config-webextension"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@parcel/config-webextension": "^2.12.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.53.0",
+    "eslint-plugin-react": "^7.33.2",
+    "parcel": "^2.12.0"
+  }
+}

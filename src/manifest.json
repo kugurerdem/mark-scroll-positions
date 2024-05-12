@@ -1,0 +1,10 @@
+{
+    "manifest_version": 3,
+    "name": "ScrollMark",
+    "description": "A better way to save scroll positions.",
+    "version": "1.0",
+    "action": {
+        "default_popup": "index.html"
+    },
+    "permissions": []
+}
