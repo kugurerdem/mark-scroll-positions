@@ -48,9 +48,10 @@ const
         </>
     },
 
-// CONTENT SCRIPTS
-    // NOTE: Since these are content scripts, they run on a seperate VM and
-    // thus they cannot use things in outer scope of their function,
+    // CONTENT SCRIPTS
+
+    // NOTE: Below are content scripts, they run on a seperate environment and
+    // thus they cannot use things in outer scope of their function
 
     saveScrollDetails = async () => {
         const
