@@ -62,7 +62,8 @@ const
         uuid,
     }) => {
         const
-            {activeTab, absoluteURL, setPageData} = useContext(Context),
+            {activeTab, absoluteURL,
+                pageData, setPageData} = useContext(Context),
 
             onJump = () => {
                 chrome.scripting.executeScript({
@@ -72,13 +73,9 @@ const
                 })
             },
 
-            onRemove = async () => {
-                const pageData =
-                    (await chrome.storage.local.get(absoluteURL))[absoluteURL]
-
-                pageData.scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
-
-                setPageData(pageData)
+            onRemove = () => {
+                const scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
+                setPageData({...pageData, scrolls})
             }
 
         return <div className="scroll">
@@ -87,9 +84,7 @@ const
                     100 * ((scrollPosition + viewportHeight) / contentHeight))
                 }%
             </span>
-            <span>
-                { dateISO.slice(0, 'XXXX-XX-XX'.length) }
-            </span>
+            <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
             <button onClick={onJump}>
                 <img src="./assets/svgs/up.svg"/>
             </button>
@@ -106,12 +101,9 @@ const
                 title: null,
             }),
 
-            customSetPageData = (data) => {
+            customSetPageData = data =>
                 chrome.storage.local.set({[absoluteURL] : data})
-                    .then(() => {
-                        setPageData(data)
-                    })
-            }
+                    .then(() => setPageData(data))
 
         useEffect(() => {
             chrome.storage.local.get(absoluteURL)
