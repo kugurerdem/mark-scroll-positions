@@ -1,24 +1,33 @@
 const
     {createRoot} = require('react-dom/client'),
-    {useState, useCallback, useEffect} = require('react'),
+
+    {useState, useCallback, useEffect,
+        createContext, useContext} = require('react'),
+
+    Context = createContext(),
 
     main = async () => {
         const
             [activeTab] = await chrome.tabs.query(
-                { active: true, lastFocusedWindow: true }
+                {active: true, lastFocusedWindow: true},
             )
 
         createRoot(document.getElementById('app'))
-            .render(<App activeTab={activeTab}/>)
+            .render(
+                <Context.Provider value={{activeTab}}>
+                    <App />
+                </Context.Provider>,
+            )
     },
 
-    App = ({activeTab}) => {
+    App = () => {
         const
             [scrolls, setScrolls] = useState([]),
+            {activeTab} = useContext(Context),
 
             onSave = useCallback(() => {
                 chrome.scripting.executeScript({
-                    target: { tabId: activeTab.id },
+                    target: {tabId: activeTab.id},
                     func: saveScrollDetails,
                 })
                     .then((injectionResults) => {
@@ -35,17 +44,46 @@ const
                 absoluteURL = hostname.concat(pathname)
 
             chrome.storage.local.get(absoluteURL)
-                .then(r => setScrolls(r[absoluteURL] || []))
+                .then(r => setScrolls(r[absoluteURL]?.scrolls || []))
         }, [])
 
         return <>
             <button type="button" className="save-btn" onClick={onSave}>
                 Save Scroll Position
             </button>
-            <span>
-            { JSON.stringify(scrolls) }
-            </span>
+            { scrolls.map(
+                (details, idx) =>
+                    <Scroll {...details} key={idx} />,
+            ) }
         </>
+    },
+
+    Scroll = ({
+        scrollPosition,
+        viewportHeight,
+        contentHeight,
+    }) => {
+        const
+            {activeTab} = useContext(Context),
+
+            onJump = () => {
+                chrome.scripting.executeScript({
+                    target: {tabId: activeTab.id},
+                    func: jumpToScrollPosition,
+                    args: [{scrollPosition, viewportHeight, contentHeight}],
+                })
+            }
+
+        return <div className="scroll">
+            <span>
+                {Math.ceil(
+                    100 * ((scrollPosition + viewportHeight) / contentHeight))
+                }%
+            </span>
+            <button onClick={onJump}>
+                <img src="./assets/svgs/up.svg"/>
+            </button>
+        </div>
     },
 
     // CONTENT SCRIPTS
@@ -59,16 +97,38 @@ const
                 window.location.hostname.concat(window.location.pathname),
 
             scrollDetails = {
-                offset: window.pageYOffset,
-                total: document.body.scrollHeight,
+                // NOTE: scrollPosition + viewportHeight = contentHeight
+                scrollPosition: window.pageYOffset,
+                viewportHeight: window.innerHeight,
+                contentHeight: document.body.scrollHeight,
             },
 
-            scrolls =
-                (await chrome.storage.local.get(absoluteURL))[absoluteURL] || []
+            pageData =
+                (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {},
+
+            scrolls = pageData.scrolls || [],
+
+            title = pageData.title || document.title
 
         scrolls.push(scrollDetails)
-        await chrome.storage.local.set({ [absoluteURL]: scrolls })
+        await chrome.storage.local.set({
+            [absoluteURL]: {title, scrolls},
+        })
+
         return scrolls
+    },
+
+    jumpToScrollPosition = ({
+        scrollPosition,
+        viewportHeight,
+        contentHeight,
+    }) => {
+        const
+            percentage = (scrollPosition + viewportHeight) / contentHeight,
+            toJumpPositionY =
+                percentage * (document.body.scrollHeight - viewportHeight)
+
+        window.scrollTo(0, toJumpPositionY)
     }
 
 
