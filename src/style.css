@@ -1,4 +1,29 @@
+button:hover {
+    cursor: pointer;
+}
+
 .save-btn {
     background: #0F0;
     border: none;
+}
+
+.scroll {
+    margin: 1em 0.5em;
+    padding: 1em 1em;
+    border-radius: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f0f8ff;
+}
+
+.scroll button {
+    background: none;
+    border: none;
+    width: 25px;
+    height: 25px;
+}
+
+.scroll button:hover {
+    transform: scale(1.1);
 }
