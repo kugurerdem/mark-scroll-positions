@@ -7,10 +7,8 @@ const
     Context = createContext(),
 
     main = async () => {
-        const
-            [activeTab] = await chrome.tabs.query(
-                {active: true, lastFocusedWindow: true},
-            )
+        const [activeTab] =
+            await chrome.tabs.query({active: true, lastFocusedWindow: true})
 
         createRoot(document.getElementById('app'))
             .render(<Boot activeTab={activeTab} />)
@@ -19,22 +17,20 @@ const
     Boot = ({activeTab}) => {
         const
             {hostname, pathname} = new URL(activeTab.url),
-
             absoluteURL = hostname.concat(pathname),
 
-            [scrolls, setScrolls] = useState([])
+            [pageData, setPageData] = usePageDataState(absoluteURL)
 
-        return <Context.Provider value={{
-            activeTab, absoluteURL,
-            scrolls, setScrolls,
-        }}>
-            <App />
-        </Context.Provider>
+        return <Context.Provider
+            value={{ activeTab, absoluteURL, pageData, setPageData }}
+            children = { <App/> }
+        />
     },
 
     App = () => {
         const
-            {activeTab, absoluteURL, scrolls, setScrolls} = useContext(Context),
+            {activeTab, absoluteURL,
+                pageData, setPageData} = useContext(Context),
 
             onSave = useCallback(() => {
                 chrome.scripting.executeScript({
@@ -43,21 +39,15 @@ const
                 })
                     .then((injectionResults) => {
                         const {result} = injectionResults[0]
-                        console.log(result)
-                        setScrolls(result)
+                        setPageData(result)
                     })
             }, [])
-
-        useEffect(() => {
-            chrome.storage.local.get(absoluteURL)
-                .then(r => setScrolls(r[absoluteURL]?.scrolls || []))
-        }, [])
 
         return <>
             <button type="button" className="save-btn" onClick={onSave}>
                 Save Scroll Position
             </button>
-            { scrolls.map(
+            { pageData.scrolls.map(
                 (details, idx) =>
                     <Scroll {...details} key={idx} />,
             ) }
@@ -72,7 +62,7 @@ const
         uuid,
     }) => {
         const
-            {activeTab, absoluteURL, setScrolls} = useContext(Context),
+            {activeTab, absoluteURL, setPageData} = useContext(Context),
 
             onJump = () => {
                 chrome.scripting.executeScript({
@@ -88,10 +78,7 @@ const
 
                 pageData.scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
 
-                chrome.storage.local.set({[absoluteURL] : pageData})
-                    .then(() => {
-                        setScrolls(pageData.scrolls)
-                    })
+                setPageData(pageData)
             }
 
         return <div className="scroll">
@@ -110,6 +97,35 @@ const
                 <img src="./assets/svgs/trash-can.svg"/>
             </button>
         </div>
+    },
+
+    usePageDataState = (absoluteURL) => {
+        const
+            [pageData, setPageData] = useState({
+                scrolls: [],
+                title: null,
+            }),
+
+            customSetPageData = (data) => {
+                chrome.storage.local.set({[absoluteURL] : data})
+                    .then(() => {
+                        setPageData(data)
+                    })
+            }
+
+        useEffect(() => {
+            chrome.storage.local.get(absoluteURL)
+                .then(r => {
+                    if (
+                        r[absoluteURL]
+                        && r[absoluteURL].scrolls?.length
+                        && r[absoluteURL].title
+                    )
+                        setPageData(r[absoluteURL])
+                })
+        }, [])
+
+        return [pageData, customSetPageData]
     },
 
     // CONTENT SCRIPTS
@@ -133,18 +149,17 @@ const
 
             pageData =
             // eslint-disable-next-line max-len
-                (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {},
+                (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {}
 
-            scrolls = pageData.scrolls || [],
+        pageData.scrolls = pageData.scrolls || []
+        pageData.title = pageData.title || document.title
+        pageData.scrolls.push(scrollDetails)
 
-            title = pageData.title || document.title
-
-        scrolls.push(scrollDetails)
         await chrome.storage.local.set({
-            [absoluteURL]: {title, scrolls},
+            [absoluteURL]: pageData,
         })
 
-        return scrolls
+        return pageData
     },
 
     jumpToScrollPosition = ({
