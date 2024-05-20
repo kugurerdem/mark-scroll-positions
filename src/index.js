@@ -13,17 +13,28 @@ const
             )
 
         createRoot(document.getElementById('app'))
-            .render(
-                <Context.Provider value={{activeTab}}>
-                    <App />
-                </Context.Provider>,
-            )
+            .render(<Boot activeTab={activeTab} />)
+    },
+
+    Boot = ({activeTab}) => {
+        const
+            {hostname, pathname} = new URL(activeTab.url),
+
+            absoluteURL = hostname.concat(pathname),
+
+            [scrolls, setScrolls] = useState([])
+
+        return <Context.Provider value={{
+            activeTab, absoluteURL,
+            scrolls, setScrolls,
+        }}>
+            <App />
+        </Context.Provider>
     },
 
     App = () => {
         const
-            [scrolls, setScrolls] = useState([]),
-            {activeTab} = useContext(Context),
+            {activeTab, absoluteURL, scrolls, setScrolls} = useContext(Context),
 
             onSave = useCallback(() => {
                 chrome.scripting.executeScript({
@@ -38,11 +49,6 @@ const
             }, [])
 
         useEffect(() => {
-            const
-                {hostname, pathname} = new URL(activeTab.url),
-
-                absoluteURL = hostname.concat(pathname)
-
             chrome.storage.local.get(absoluteURL)
                 .then(r => setScrolls(r[absoluteURL]?.scrolls || []))
         }, [])
@@ -62,9 +68,11 @@ const
         scrollPosition,
         viewportHeight,
         contentHeight,
+        dateISO,
+        uuid,
     }) => {
         const
-            {activeTab} = useContext(Context),
+            {activeTab, absoluteURL, setScrolls} = useContext(Context),
 
             onJump = () => {
                 chrome.scripting.executeScript({
@@ -72,6 +80,18 @@ const
                     func: jumpToScrollPosition,
                     args: [{scrollPosition, viewportHeight, contentHeight}],
                 })
+            },
+
+            onRemove = async () => {
+                const pageData =
+                    (await chrome.storage.local.get(absoluteURL))[absoluteURL]
+
+                pageData.scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
+
+                chrome.storage.local.set({[absoluteURL] : pageData})
+                    .then(() => {
+                        setScrolls(pageData.scrolls)
+                    })
             }
 
         return <div className="scroll">
@@ -80,8 +100,14 @@ const
                     100 * ((scrollPosition + viewportHeight) / contentHeight))
                 }%
             </span>
+            <span>
+                { dateISO.slice(0, 'XXXX-XX-XX'.length) }
+            </span>
             <button onClick={onJump}>
                 <img src="./assets/svgs/up.svg"/>
+            </button>
+            <button onClick={onRemove}>
+                <img src="./assets/svgs/trash-can.svg"/>
             </button>
         </div>
     },
@@ -101,9 +127,12 @@ const
                 scrollPosition: window.pageYOffset,
                 viewportHeight: window.innerHeight,
                 contentHeight: document.body.scrollHeight,
+                dateISO: (new Date()).toISOString(),
+                uuid: crypto.randomUUID(),
             },
 
             pageData =
+            // eslint-disable-next-line max-len
                 (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {},
 
             scrolls = pageData.scrolls || [],
