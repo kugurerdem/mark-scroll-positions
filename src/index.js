@@ -124,9 +124,9 @@ const
         contentHeight,
     }) => {
         const
-            percentage = (scrollPosition + viewportHeight) / contentHeight,
+            percentage = scrollPosition / (contentHeight - viewportHeight),
             toJumpPositionY =
-                percentage * (document.body.scrollHeight - viewportHeight)
+                percentage * (document.body.scrollHeight - window.innerHeight)
 
         window.scrollTo(0, toJumpPositionY)
     }
