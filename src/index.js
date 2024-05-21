@@ -46,9 +46,11 @@ const
             }, [])
 
         return <>
-            <button type="button" className="save-btn" onClick={onSave}>
-                Save Scroll Position
+            <button type="button" onClick={onSave}>
+                <img src="./assets/svgs/bookmark.svg" className="icon"/>
+                <span> Mark </span>
             </button>
+
             { pageData.scrolls.map(
                 (details, idx) =>
                     <Scroll {...details} key={idx} />,
