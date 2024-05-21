@@ -6,6 +6,8 @@ const
 
     Context = createContext(),
 
+    {assign} = Object,
+
     main = async () => {
         const [activeTab] =
             await chrome.tabs.query({active: true, lastFocusedWindow: true})
@@ -19,17 +21,17 @@ const
             {hostname, pathname} = new URL(activeTab.url),
             absoluteURL = hostname.concat(pathname),
 
-            [pageData, setPageData] = usePageDataState(absoluteURL)
+            [pageData, setPageData, patchScroll] = usePageDataState(absoluteURL)
 
         return <Context.Provider
-            value={{ activeTab, absoluteURL, pageData, setPageData }}
+            value={{activeTab, absoluteURL, pageData, setPageData, patchScroll}}
             children = { <App/> }
         />
     },
 
     App = () => {
         const
-            {activeTab, absoluteURL,
+            {activeTab,
                 pageData, setPageData} = useContext(Context),
 
             onSave = useCallback(() => {
@@ -60,10 +62,11 @@ const
         contentHeight,
         dateISO,
         uuid,
+        name,
     }) => {
         const
-            {activeTab, absoluteURL,
-                pageData, setPageData} = useContext(Context),
+            {activeTab, pageData,
+                setPageData, patchScroll} = useContext(Context),
 
             onJump = () => {
                 chrome.scripting.executeScript({
@@ -76,22 +79,62 @@ const
             onRemove = () => {
                 const scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
                 setPageData({...pageData, scrolls})
+            },
+
+            handleNameInputSave = (name) => {
+                patchScroll(uuid, {name})
             }
 
         return <div className="scroll">
-            <span>
-                {Math.ceil(
-                    100 * ((scrollPosition + viewportHeight) / contentHeight))
-                }%
-            </span>
-            <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
-            <button onClick={onJump}>
-                <img src="./assets/svgs/up.svg"/>
-            </button>
-            <button onClick={onRemove}>
-                <img src="./assets/svgs/trash-can.svg"/>
-            </button>
+            <TextInput value={name} onSave={handleNameInputSave}/>
+            <div className="scroll-details">
+                <span>
+                    {Math.ceil(
+                        100 * (scrollPosition + viewportHeight) / contentHeight)
+                    }%
+                </span>
+                <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
+                <span>
+                    <button onClick={onJump}>
+                        <img
+                            src="./assets/svgs/location-arrow.svg"
+                            className="icon"
+                        />
+                    </button>
+                    <button onClick={onRemove}>
+                        <img
+                            src="./assets/svgs/trash-can.svg"
+                            className="icon"
+                        />
+                    </button>
+                </span>
+            </div>
         </div>
+    },
+
+    TextInput = ({value, onSave = () => {}}) => {
+        const
+            [currentText, setCurrentText] = useState(value),
+            [savedText, setSavedText] = useState(value),
+
+            handleInputChange = (e) => { setCurrentText(e.target.value) },
+
+            handleBlur = () => {
+                if (savedText != currentText)
+                    onSave(currentText)
+                setSavedText(currentText)
+            }
+
+
+        return (<>
+            <label> Scroll Name </label>
+            <input
+                type="text"
+                value={currentText}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+            />
+        </>)
     },
 
     usePageDataState = (absoluteURL) => {
@@ -103,7 +146,20 @@ const
 
             customSetPageData = data =>
                 chrome.storage.local.set({[absoluteURL] : data})
-                    .then(() => setPageData(data))
+                    .then(() => setPageData(data)),
+
+            patchScroll = (uuid, patch) => {
+                const scrolls = pageData.scrolls.map(s => {
+                    if (s.uuid == uuid)
+                        assign(s, patch)
+                    return s
+                })
+
+                customSetPageData({
+                    ...pageData,
+                    scrolls,
+                })
+            }
 
         useEffect(() => {
             chrome.storage.local.get(absoluteURL)
@@ -117,7 +173,7 @@ const
                 })
         }, [])
 
-        return [pageData, customSetPageData]
+        return [pageData, customSetPageData, patchScroll]
     },
 
     // CONTENT SCRIPTS
@@ -130,13 +186,16 @@ const
             absoluteURL =
                 window.location.hostname.concat(window.location.pathname),
 
+            uuid = crypto.randomUUID(),
+
             scrollDetails = {
                 // NOTE: scrollPosition + viewportHeight = contentHeight
                 scrollPosition: window.pageYOffset,
                 viewportHeight: window.innerHeight,
                 contentHeight: document.body.scrollHeight,
                 dateISO: (new Date()).toISOString(),
-                uuid: crypto.randomUUID(),
+                uuid,
+                name: uuid,
             },
 
             pageData =
