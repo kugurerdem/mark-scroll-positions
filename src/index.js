@@ -2,7 +2,7 @@ const
     {createRoot} = require('react-dom/client'),
 
     {useState, useCallback, useEffect,
-        createContext, useContext} = require('react'),
+        createContext, useContext, useRef} = require('react'),
 
     Context = createContext(),
 
@@ -52,8 +52,8 @@ const
             </button>
 
             { pageData.scrolls.map(
-                (details, idx) =>
-                    <Scroll {...details} key={idx} />,
+                (details) =>
+                    <Scroll {...details} key={details.uuid} />,
             ) }
         </>
     },
@@ -65,10 +65,13 @@ const
         dateISO,
         uuid,
         name,
+        note,
     }) => {
         const
             {activeTab, pageData,
                 setPageData, patchScroll} = useContext(Context),
+
+            [displayNote, setDisplayNote] = useState(Boolean(note)),
 
             onJump = () => {
                 chrome.scripting.executeScript({
@@ -85,10 +88,19 @@ const
 
             handleNameInputSave = (name) => {
                 patchScroll(uuid, {name})
+            },
+
+            handleNoteInputSave = (note) => {
+                patchScroll(uuid, {note})
+            },
+
+            handleAddNote = () => {
+                setDisplayNote(true)
             }
 
         return <div className="scroll">
-            <TextInput value={name} onSave={handleNameInputSave}/>
+            <TextInput
+                label="Scroll name" value={name} onBlur={handleNameInputSave}/>
             <div className="scroll-details">
                 <span>
                     {Math.ceil(
@@ -109,33 +121,46 @@ const
                             className="icon"
                         />
                     </button>
+
+                    { !displayNote &&
+                        <button onClick={handleAddNote}>
+                            <img src="./assets/svgs/pen.svg" className="icon"/>
+                        </button> }
                 </span>
             </div>
+            { displayNote &&
+            <TextInput
+                type="textarea"
+                label="Note" value={note} onBlur={handleNoteInputSave} /> }
         </div>
     },
 
-    TextInput = ({value, onSave = () => {}}) => {
+    TextInput = ({label, value, onBlur = () => {}, type='input'}) => {
         const
             [currentText, setCurrentText] = useState(value),
             [savedText, setSavedText] = useState(value),
 
-            handleInputChange = (e) => { setCurrentText(e.target.value) },
+            handleInputChange = (e) => {
+                setCurrentText(e.target.value)
+            },
 
             handleBlur = () => {
                 if (savedText != currentText)
-                    onSave(currentText)
+                    onBlur(currentText)
                 setSavedText(currentText)
+            },
+
+            props = {
+                type: 'text',
+                value: currentText,
+                onChange: handleInputChange,
+                onBlur: handleBlur,
             }
 
 
         return (<>
-            <label> Scroll Name </label>
-            <input
-                type="text"
-                value={currentText}
-                onChange={handleInputChange}
-                onBlur={handleBlur}
-            />
+            {label && <label> {label} </label>}
+            { type == 'input' ? <input {...props}/> : <textarea {...props} /> }
         </>)
     },
 
@@ -198,6 +223,7 @@ const
                 dateISO: (new Date()).toISOString(),
                 uuid,
                 name: uuid,
+                note: '',
             },
 
             pageData =
