@@ -1,5 +1,13 @@
 html {
-    width: 250px;
+    width: 360px;
+}
+
+input, textarea {
+    background: none;
+    border: 0.1em ridge green;
+    border-radius: 0.2em;
+    margin-bottom: 0.5em;
+    width: 100%;
 }
 
 button {
@@ -7,14 +15,14 @@ button {
     border: none;
 }
 
-.icon {
-    width: 20px;
-    height: 20px;
-}
-
 button:hover {
     cursor: pointer;
     transform: scale(1.1);
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
 }
 
 .scroll {
@@ -29,12 +37,4 @@ button:hover {
     display: flex;
     align-items: center;
     justify-content: space-between;
-}
-
-input, textarea {
-    background: none;
-    border: 0.1em ridge green;
-    border-radius: 0.2em;
-    margin-bottom: 0.5em;
-    width: 100%;
 }

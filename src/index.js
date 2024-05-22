@@ -2,7 +2,12 @@ const
     {createRoot} = require('react-dom/client'),
 
     {useState, useCallback, useEffect,
-        createContext, useContext, useRef} = require('react'),
+        createContext, useContext} = require('react'),
+
+    {DndContext} = require('@dnd-kit/core'),
+    {SortableContext, useSortable, arrayMove} = require('@dnd-kit/sortable'),
+    {CSS} = require('@dnd-kit/utilities'),
+    {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
 
     Context = createContext(),
 
@@ -43,7 +48,27 @@ const
                         const {result} = injectionResults[0]
                         setPageData(result)
                     })
-            }, [])
+            }, []),
+
+            handleDragEnd = (e) => {
+                const {active, over} = e
+
+                console.log({active, over})
+
+                if(over && active.id != over.id){
+                    const
+                        oldIndex =
+                            pageData.scrolls.findIndex(s => s.uuid == active.id),
+
+                        newIndex =
+                            pageData.scrolls.findIndex(s => s.uuid == over.id)
+
+                    setPageData({
+                        ...pageData,
+                        scrolls: arrayMove(pageData.scrolls, oldIndex, newIndex)
+                    })
+                }
+            }
 
         return <>
             <button type="button" onClick={onSave}>
@@ -51,10 +76,19 @@ const
                 <span> Mark </span>
             </button>
 
-            { pageData.scrolls.map(
-                (details) =>
-                    <Scroll {...details} key={details.uuid} />,
-            ) }
+            <DndContext
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis]}
+            >
+                <SortableContext items={
+                    pageData.scrolls.map(s => ({...s, id: s.uuid}))
+                }>
+                    {pageData.scrolls.map(
+                        (details) =>
+                            <Scroll {...details} key={details.uuid} />,
+                    )}
+                </SortableContext>
+            </DndContext>
         </>
     },
 
@@ -72,6 +106,14 @@ const
                 setPageData, patchScroll} = useContext(Context),
 
             [displayNote, setDisplayNote] = useState(Boolean(note)),
+
+            {attributes, listeners, setNodeRef,
+                transform, transition} = useSortable({id: uuid}),
+
+            style = {
+                transform: CSS.Transform.toString(transform),
+                transition,
+            },
 
             onJump = () => {
                 chrome.scripting.executeScript({
@@ -98,7 +140,11 @@ const
                 setDisplayNote(true)
             }
 
-        return <div className="scroll">
+        return (<div
+            ref={setNodeRef}
+            className="scroll"
+            style={style}
+        >
             <TextInput
                 label="Scroll name" value={name} onBlur={handleNameInputSave}/>
             <div className="scroll-details">
@@ -126,13 +172,18 @@ const
                         <button onClick={handleAddNote}>
                             <img src="./assets/svgs/pen.svg" className="icon"/>
                         </button> }
+
+                    <button {...attributes} {...listeners}>
+                        <img src="./assets/svgs/up-down-left-right.svg"
+                            className="icon" />
+                    </button>
                 </span>
             </div>
             { displayNote &&
             <TextInput
                 type="textarea"
                 label="Note" value={note} onBlur={handleNoteInputSave} /> }
-        </div>
+        </div>)
     },
 
     TextInput = ({label, value, onBlur = () => {}, type='input'}) => {
