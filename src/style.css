@@ -1,29 +1,40 @@
-button:hover {
-    cursor: pointer;
+html {
+    width: 250px;
 }
 
-.save-btn {
-    background: #0F0;
+button {
+    background: none;
     border: none;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+}
+
+button:hover {
+    cursor: pointer;
+    transform: scale(1.1);
 }
 
 .scroll {
     margin: 1em 0.5em;
     padding: 1em 1em;
     border-radius: 1em;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     background: #f0f8ff;
 }
 
-.scroll button {
-    background: none;
-    border: none;
-    width: 25px;
-    height: 25px;
+.scroll-details {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.scroll button:hover {
-    transform: scale(1.1);
+input, textarea {
+    background: none;
+    border: 0.1em ridge green;
+    border-radius: 0.2em;
+    margin-bottom: 0.5em;
+    width: 100%;
 }
