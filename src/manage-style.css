@@ -1,0 +1,53 @@
+body {
+    background: #eee;
+}
+
+main {
+    background: white;
+    margin: 2em auto;
+    padding: 0.5em;
+    border-radius: 1em;
+    box-shadow: 0 0 6px rgb(0 0 0 / 20%);
+}
+
+h1 {
+    text-align: center;
+}
+
+@media (max-width: 52em) {
+    main {
+        display: block;
+        width: 100%;
+    }
+}
+
+@media (min-width: 52em){
+    main {
+        max-width: calc(100% - 17em);
+    }
+}
+
+.page {
+    background: #f0f8ff;
+    width: 54em;
+    border-radius: 2em;
+    margin: 1em auto;
+}
+
+.pageInfo {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.pageHeader {
+    display: flex;
+    flex-direction: column;
+    width: 20em;
+}
+
+.search {
+    margin: 1em auto;
+    width: 12em;
+}

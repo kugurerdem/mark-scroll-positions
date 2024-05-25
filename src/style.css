@@ -10,20 +10,6 @@ input, textarea {
     width: 100%;
 }
 
-button {
-    background: none;
-    border: none;
-}
-
-button:hover {
-    cursor: pointer;
-    transform: scale(1.1);
-}
-
-.icon {
-    width: 16px;
-    height: 16px;
-}
 
 .scroll {
     margin: 1em 0.5em;

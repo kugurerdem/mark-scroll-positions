@@ -9,6 +9,8 @@ const
     {CSS} = require('@dnd-kit/utilities'),
     {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
 
+    {calculateScrollPercentage, Button, TextInput} = require('./utils'),
+
     Context = createContext(),
 
     {assign} = Object,
@@ -71,11 +73,7 @@ const
             }
 
         return <>
-            <button type="button" onClick={onSave}>
-                <img src="./assets/svgs/bookmark.svg" className="icon"/>
-                <span> Mark </span>
-            </button>
-
+            <Button icon="bookmark" text="Mark" onClick={onSave} />
             <DndContext
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToVerticalAxis]}
@@ -149,29 +147,17 @@ const
                 label="Scroll name" value={name} onBlur={handleNameInputSave}/>
             <div className="scroll-details">
                 <span>
-                    {Math.ceil(
-                        100 * (scrollPosition + viewportHeight) / contentHeight)
-                    }%
+                {calculateScrollPercentage(
+                    {scrollPosition, viewportHeight, contentHeight},
+                )}%
                 </span>
                 <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
                 <span>
-                    <button onClick={onJump}>
-                        <img
-                            src="./assets/svgs/location-arrow.svg"
-                            className="icon"
-                        />
-                    </button>
-                    <button onClick={onRemove}>
-                        <img
-                            src="./assets/svgs/trash-can.svg"
-                            className="icon"
-                        />
-                    </button>
+                    <Button onClick={onJump} icon="location-arrow" />
+                    <Button onClick={onRemove} icon="trash-can" />
 
-                    { !displayNote &&
-                        <button onClick={handleAddNote}>
-                            <img src="./assets/svgs/pen.svg" className="icon"/>
-                        </button> }
+                    { !displayNote
+                        && <Button onClick={handleAddNote} icon="pen" /> }
 
                     <button {...attributes} {...listeners}>
                         <img src="./assets/svgs/up-down-left-right.svg"
@@ -184,35 +170,6 @@ const
                 type="textarea"
                 label="Note" value={note} onBlur={handleNoteInputSave} /> }
         </div>)
-    },
-
-    TextInput = ({label, value, onBlur = () => {}, type='input'}) => {
-        const
-            [currentText, setCurrentText] = useState(value),
-            [savedText, setSavedText] = useState(value),
-
-            handleInputChange = (e) => {
-                setCurrentText(e.target.value)
-            },
-
-            handleBlur = () => {
-                if (savedText != currentText)
-                    onBlur(currentText)
-                setSavedText(currentText)
-            },
-
-            props = {
-                type: 'text',
-                value: currentText,
-                onChange: handleInputChange,
-                onBlur: handleBlur,
-            }
-
-
-        return (<>
-            {label && <label> {label} </label>}
-            { type == 'input' ? <input {...props}/> : <textarea {...props} /> }
-        </>)
     },
 
     usePageDataState = (absoluteURL) => {
