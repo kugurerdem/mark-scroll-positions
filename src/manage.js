@@ -16,13 +16,16 @@ const
     },
 
     App = ({pageDetailsByURL}) => {
-        const [searchText, setSearchText] = useState(null)
+        const
+            [searchText, setSearchText] = useState(null),
+            [pagesByURL, setPagesByURL] = useState(pageDetailsByURL)
+
         return <main>
             <h1> Your Marked Scroll Positions </h1>
             <TextInput label="search"
                 onChange={setSearchText} className="search"/>
             <p> {searchText} </p>
-            { entries(pageDetailsByURL)
+            { entries(pagesByURL)
                 .filter(([url, details]) => (
                     !searchText
                     || url.includes(searchText)
@@ -30,11 +33,11 @@ const
                     || details.scrolls.some(s => s.note?.includes(searchText))
                 ))
                 .map(([url, details], idx) =>
-                    <Page {...{url, details}} key={idx}/>) }
+                    <Page {...{url, setPagesByURL}} key={idx}/>) }
         </main>
     },
 
-    Page = ({ url }) => {
+    Page = ({ url, setPagesByURL }) => {
         const
             [pageData, setPageData, patchScroll] = usePageDataState(url),
 
@@ -42,6 +45,14 @@ const
 
             handleExpand = () => {
                 setExpand(!expand)
+            },
+
+            handlePageDelete = () => {
+                chrome.storage.local.remove([url])
+                setPagesByURL(current => {
+                    const {[url]: _, ...rest} = current
+                    return rest
+                })
             },
 
             maxPercentage = Math.max(
@@ -58,7 +69,8 @@ const
                 <div>
                     <Button icon="angle-down"
                         text="Expand" onClick={handleExpand}/>
-                    <Button icon="trash-can" text="Delete" />
+                    <Button icon="trash-can"
+                        text="Delete" onClick={handlePageDelete}/>
                 </div>
             </div> {expand && <> {
                 pageData.scrolls.map(d => <GenericScroll
