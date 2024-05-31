@@ -1,26 +1,3 @@
 html {
     width: 360px;
 }
-
-input, textarea {
-    background: none;
-    border: 0.1em ridge green;
-    border-radius: 0.2em;
-    margin-bottom: 0.5em;
-    width: 100%;
-}
-
-
-.scroll {
-    margin: 1em 0.5em;
-    padding: 1em 1em;
-    border-radius: 1em;
-    background: #f0f8ff;
-}
-
-.scroll-details {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}

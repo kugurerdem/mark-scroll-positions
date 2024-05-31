@@ -67,8 +67,16 @@ const
                     <span> {url} </span>
                 </div>
                 <div>
-                    <Button icon="angle-down"
-                        text="Expand" onClick={handleExpand}/>
+                    { expand
+                        ? <Button
+                            icon="angle-up"
+                            text="Collapse"
+                            onClick={handleExpand} />
+                        : <Button
+                            icon="angle-down"
+                            text="Expand"
+                            onClick={handleExpand}/> }
+
                     <Button icon="trash-can"
                         text="Delete" onClick={handlePageDelete}/>
                 </div>
