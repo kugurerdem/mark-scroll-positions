@@ -1,5 +1,10 @@
 const
-    {useState} = require('react'),
+    {useState, useEffect} = require('react'),
+
+    {useSortable} = require('@dnd-kit/sortable'),
+    {CSS} = require('@dnd-kit/utilities'),
+
+    {assign} = Object,
 
     TextInput = ({
         label, value,
@@ -45,10 +50,115 @@ const
         </button>
     },
 
+    GenericScroll = ({
+        name,
+        note,
+        scrollPosition,
+        viewportHeight,
+        contentHeight,
+        dateISO,
+        uuid,
+
+        onJump,
+
+        pageData,
+        setPageData,
+        patchScroll,
+    }) => {
+        const
+            [displayNote, setDisplayNote] = useState(Boolean(note)),
+
+            {attributes, listeners, setNodeRef,
+                transform, transition} = useSortable({id: uuid}),
+
+            style = {
+                transform: CSS.Transform.toString(transform),
+                transition,
+            },
+
+            handleAddNote = () => { setDisplayNote(true) },
+            onNoteChange = (note) => { patchScroll(uuid, {note}) },
+            onNameChange = (name) => { patchScroll(uuid, {name}) },
+
+            onRemove = () => {
+                const scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
+                setPageData({...pageData, scrolls})
+            }
+
+        return <div ref={setNodeRef} className="scroll" style={style} >
+            <TextInput
+                label="Scroll name" value={name} onBlur={onNameChange}/>
+            <div className="scroll-details">
+                <span>
+                    {calculateScrollPercentage(
+                        {scrollPosition, viewportHeight, contentHeight},
+                    )}%
+                </span>
+                <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
+                <span>
+                    <Button onClick={onJump} icon="location-arrow" />
+                    <Button onClick={onRemove} icon="trash-can" />
+                    { !displayNote
+                        && <Button onClick={handleAddNote} icon="note-sticky" />
+                    }
+                    <button {...attributes} {...listeners}>
+                        <img src="./assets/svgs/up-down-left-right.svg"
+                            className="icon" />
+                    </button>
+                </span>
+            </div>
+            { displayNote &&
+                <TextInput
+                    type="textarea"
+                    label="Note" value={note} onBlur={onNoteChange} /> }
+        </div>
+    },
+
+    usePageDataState = (absoluteURL) => {
+        const
+            [pageData, setPageData] = useState({
+                scrolls: [],
+                title: null,
+            }),
+
+            customSetPageData = data =>
+                chrome.storage.local.set({[absoluteURL] : data})
+                    .then(() => setPageData(data)),
+
+            patchScroll = (uuid, patch) => {
+                const scrolls = pageData.scrolls.map(s => {
+                    if (s.uuid == uuid)
+                        assign(s, patch)
+                    return s
+                })
+
+                customSetPageData({
+                    ...pageData,
+                    scrolls,
+                })
+            }
+
+        useEffect(() => {
+            chrome.storage.local.get(absoluteURL)
+                .then(r => {
+                    if (
+                        r[absoluteURL]
+                        && r[absoluteURL].scrolls?.length
+                        && r[absoluteURL].title
+                    )
+                        setPageData(r[absoluteURL])
+                })
+        }, [])
+
+        return [pageData, customSetPageData, patchScroll]
+    },
 
     calculateScrollPercentage = (d) => Math.ceil(
-        100 * (d.scrollPosition + d.viewportHeight) / d.contentHeight
+        100 * (d.scrollPosition + d.viewportHeight) / d.contentHeight,
     )
 
 
-module.exports = {TextInput, Button, calculateScrollPercentage}
+module.exports = {
+    TextInput, Button, GenericScroll,
+    usePageDataState, calculateScrollPercentage,
+}

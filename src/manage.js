@@ -2,12 +2,14 @@ const
     {createRoot} = require('react-dom/client'),
     {useState} = require('react'),
 
-    {TextInput, Button, calculateScrollPercentage} = require('./utils.js'),
+    {TextInput, Button, GenericScroll,
+        calculateScrollPercentage, usePageDataState} = require('./utils.js'),
 
     {entries} = Object,
 
     main = async () => {
         const pageDetailsByURL = await chrome.storage.local.get()
+        // TODO: Change this with a state
 
         createRoot(document.getElementById('app'))
             .render(<App pageDetailsByURL={pageDetailsByURL} />)
@@ -32,11 +34,10 @@ const
         </main>
     },
 
-    Page = ({
-        url,
-        details,
-    }) => {
+    Page = ({ url }) => {
         const
+            [pageData, setPageData, patchScroll] = usePageDataState(url),
+
             [expand, setExpand] = useState(false),
 
             handleExpand = () => {
@@ -44,14 +45,14 @@ const
             },
 
             maxPercentage = Math.max(
-                0, ...details.scrolls.map(calculateScrollPercentage)
+                0, ...pageData.scrolls.map(calculateScrollPercentage)
             )
 
         return <div className="page">
             <div className="pageInfo">
                 <span> {maxPercentage}% </span>
                 <div className="pageHeader">
-                    <span> {details.title} </span>
+                    <span> {pageData.title} </span>
                     <span> {url} </span>
                 </div>
                 <div>
@@ -59,12 +60,18 @@ const
                         text="Expand" onClick={handleExpand}/>
                     <Button icon="trash-can" text="Delete" />
                 </div>
-            </div>
-            {expand && <> expanded </>}
+            </div> {expand && <> {
+                pageData.scrolls.map(d => <GenericScroll
+                    {...d} key={d.uuid}
+                    onJump={() => { window.open('http://' + url) }}
+                    // TODO: add fragmented identifiers
+                    patchScroll={patchScroll}
+                    setPageData={setPageData}
+                    pageData={pageData}
+                />)
+                } </>}
         </div>
     }
-
-    // TODO: Get Scrolls from
 
 
 main()

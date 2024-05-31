@@ -4,12 +4,11 @@ const
     {useState, useCallback, useEffect,
         createContext, useContext} = require('react'),
 
+    {SortableContext, arrayMove} = require('@dnd-kit/sortable'),
     {DndContext} = require('@dnd-kit/core'),
-    {SortableContext, useSortable, arrayMove} = require('@dnd-kit/sortable'),
-    {CSS} = require('@dnd-kit/utilities'),
     {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
 
-    {calculateScrollPercentage, Button, TextInput} = require('./utils'),
+    {Button, TextInput, GenericScroll, usePageDataState} = require('./utils'),
 
     Context = createContext(),
 
@@ -74,6 +73,8 @@ const
 
         return <>
             <Button icon="bookmark" text="Mark" onClick={onSave} />
+            <Button icon="book-bookmark" text="All Marks"
+                onClick={() => {window.open('./manage.html')}}/>
             <DndContext
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToVerticalAxis]}
@@ -103,113 +104,31 @@ const
             {activeTab, pageData,
                 setPageData, patchScroll} = useContext(Context),
 
-            [displayNote, setDisplayNote] = useState(Boolean(note)),
-
-            {attributes, listeners, setNodeRef,
-                transform, transition} = useSortable({id: uuid}),
-
-            style = {
-                transform: CSS.Transform.toString(transform),
-                transition,
-            },
-
             onJump = () => {
                 chrome.scripting.executeScript({
                     target: {tabId: activeTab.id},
                     func: jumpToScrollPosition,
                     args: [{scrollPosition, viewportHeight, contentHeight}],
                 })
-            },
-
-            onRemove = () => {
-                const scrolls = pageData.scrolls.filter(s => s.uuid != uuid)
-                setPageData({...pageData, scrolls})
-            },
-
-            handleNameInputSave = (name) => {
-                patchScroll(uuid, {name})
-            },
-
-            handleNoteInputSave = (note) => {
-                patchScroll(uuid, {note})
-            },
-
-            handleAddNote = () => {
-                setDisplayNote(true)
             }
 
-        return (<div
-            ref={setNodeRef}
-            className="scroll"
-            style={style}
-        >
-            <TextInput
-                label="Scroll name" value={name} onBlur={handleNameInputSave}/>
-            <div className="scroll-details">
-                <span>
-                {calculateScrollPercentage(
-                    {scrollPosition, viewportHeight, contentHeight},
-                )}%
-                </span>
-                <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
-                <span>
-                    <Button onClick={onJump} icon="location-arrow" />
-                    <Button onClick={onRemove} icon="trash-can" />
 
-                    { !displayNote
-                        && <Button onClick={handleAddNote} icon="pen" /> }
+        return GenericScroll({
+            scrollPosition,
+            viewportHeight,
+            contentHeight,
+            dateISO,
+            uuid,
+            name,
+            note,
 
-                    <button {...attributes} {...listeners}>
-                        <img src="./assets/svgs/up-down-left-right.svg"
-                            className="icon" />
-                    </button>
-                </span>
-            </div>
-            { displayNote &&
-            <TextInput
-                type="textarea"
-                label="Note" value={note} onBlur={handleNoteInputSave} /> }
-        </div>)
+            onJump,
+            pageData,
+            setPageData,
+            patchScroll,
+        })
     },
 
-    usePageDataState = (absoluteURL) => {
-        const
-            [pageData, setPageData] = useState({
-                scrolls: [],
-                title: null,
-            }),
-
-            customSetPageData = data =>
-                chrome.storage.local.set({[absoluteURL] : data})
-                    .then(() => setPageData(data)),
-
-            patchScroll = (uuid, patch) => {
-                const scrolls = pageData.scrolls.map(s => {
-                    if (s.uuid == uuid)
-                        assign(s, patch)
-                    return s
-                })
-
-                customSetPageData({
-                    ...pageData,
-                    scrolls,
-                })
-            }
-
-        useEffect(() => {
-            chrome.storage.local.get(absoluteURL)
-                .then(r => {
-                    if (
-                        r[absoluteURL]
-                        && r[absoluteURL].scrolls?.length
-                        && r[absoluteURL].title
-                    )
-                        setPageData(r[absoluteURL])
-                })
-        }, [])
-
-        return [pageData, customSetPageData, patchScroll]
-    },
 
     // CONTENT SCRIPTS
 
