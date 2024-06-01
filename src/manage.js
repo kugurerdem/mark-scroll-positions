@@ -31,8 +31,8 @@ const
                     || details.title.includes(searchText)
                     || details.scrolls.some(s => s.note?.includes(searchText))
                 ))
-                .map(([url, details], idx) =>
-                    <Page {...{url, setPagesByURL}} key={idx}/>) }
+                .map(([url, details]) =>
+                    <Page {...{url, setPagesByURL}} key={url}/>) }
         </main>
     },
 
