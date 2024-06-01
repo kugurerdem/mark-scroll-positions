@@ -1,5 +1,8 @@
 const
     {useState, useEffect} = require('react'),
+    {SortableContext, arrayMove} = require('@dnd-kit/sortable'),
+    {DndContext} = require('@dnd-kit/core'),
+    {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
 
     {useSortable} = require('@dnd-kit/sortable'),
     {CSS} = require('@dnd-kit/utilities'),
@@ -50,14 +53,37 @@ const
         </button>
     },
 
+    SortableScrollList = ({children, pageData, setPageData}) => {
+        const handleDragEnd = (e) => {
+            if (e.over && e.active.id != e.over.id){
+                const [oldIndex, newIndex] = [e.active.id, e.over.id].map(
+                    id => pageData.scrolls.findIndex(s => s.uuid == id),
+                )
+
+                setPageData({
+                    ...pageData,
+                    scrolls: arrayMove(pageData.scrolls, oldIndex, newIndex),
+                })
+            }
+        }
+
+        return <DndContext
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis]}
+        >
+            <SortableContext
+                items={pageData.scrolls.map(s => ({...s, id: s.uuid}))}
+                children={children} />
+        </DndContext>
+    },
+
     GenericScroll = ({
         scrollDetails,
         onJump,
         pageData, setPageData, patchScroll,
     }) => {
         const
-            {name, note, scrollPosition, viewportHeight,
-                contentHeight, dateISO, uuid} = scrollDetails,
+            {name, note, dateISO, uuid} = scrollDetails,
 
             [displayNote, setDisplayNote] = useState(Boolean(note)),
 
@@ -103,9 +129,10 @@ const
         const
             [pageData, setPageData] = useState({scrolls: [], title: null}),
 
-            customSetPageData = data =>
+            customSetPageData = data => {
                 chrome.storage.local.set({[absoluteURL] : data})
-                    .then(() => setPageData(data)),
+                    .then(() => setPageData(data))
+            },
 
             patchScroll = (uuid, patch) => {
                 const scrolls = pageData.scrolls.map(s => {
@@ -133,6 +160,6 @@ const
 
 
 module.exports = {
-    TextInput, Button, GenericScroll,
+    TextInput, Button, GenericScroll, SortableScrollList,
     usePageDataState, calculateScrollPercentage,
 }

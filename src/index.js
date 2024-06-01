@@ -3,11 +3,8 @@ const
 
     {useCallback, createContext, useContext} = require('react'),
 
-    {SortableContext, arrayMove} = require('@dnd-kit/sortable'),
-    {DndContext} = require('@dnd-kit/core'),
-    {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
-
-    {Button, GenericScroll, usePageDataState} = require('./utils'),
+    {Button, GenericScroll,
+        SortableScrollList, usePageDataState} = require('./utils'),
 
     Context = createContext(),
 
@@ -45,36 +42,19 @@ const
                         const {result} = injectionResults[0]
                         setPageData(result)
                     })
-            }, []),
-
-            handleDragEnd = (e) => {
-                if (e.over && e.active.id != e.over.id){
-                    const [oldIndex, newIndex] = [e.active.id, e.over.id].map(
-                        id => pageData.scrolls.findIndex(s => s.uuid == id),
-                    )
-
-                    setPageData({
-                        ...pageData,
-                        scrolls:
-                            arrayMove(pageData.scrolls, oldIndex, newIndex),
-                    })
-                }
-            }
+            }, [])
 
         return <>
             <Button icon="bookmark" text="Mark" onClick={onSave} />
             <Button icon="book-bookmark" text="All Marks"
                 onClick={() => {window.open('./manage.html')}}/>
-            <DndContext
-                onDragEnd={handleDragEnd}
-                modifiers={[restrictToVerticalAxis]}
-            >
-                <SortableContext
-                    items={pageData.scrolls.map(s => ({...s, id: s.uuid}))}
-                    children={pageData.scrolls.map((details) =>
-                        <Scroll scrollDetails={details} key={details.uuid} />)}
-                />
-            </DndContext>
+
+            <SortableScrollList
+                children={pageData.scrolls.map((details) =>
+                    <Scroll scrollDetails={details} key={details.uuid} />)}
+                pageData={pageData}
+                setPageData={setPageData}
+            />
         </>
     },
 

@@ -2,7 +2,7 @@ const
     {createRoot} = require('react-dom/client'),
     {useState} = require('react'),
 
-    {TextInput, Button, GenericScroll,
+    {TextInput, Button, GenericScroll, SortableScrollList,
         calculateScrollPercentage, usePageDataState} = require('./utils.js'),
 
     {entries} = Object,
@@ -69,27 +69,29 @@ const
                 </div>
                 <div>
                     { expand
-                        ? <Button
-                            icon="angle-up"
-                            text="Collapse"
+                        ? <Button icon="angle-up" text="Collapse"
                             onClick={handleExpand} />
-                        : <Button
-                            icon="angle-down"
-                            text="Expand"
+                        : <Button icon="angle-down" text="Expand"
                             onClick={handleExpand}/> }
 
-                    <Button icon="trash-can"
-                        text="Delete" onClick={handlePageDelete}/>
+                    <Button icon="trash-can" text="Delete"
+                        onClick={handlePageDelete}/>
                 </div>
             </div> {expand && <> {
-                pageData.scrolls.map(d => <GenericScroll
-                    scrollDetails={d} key={d.uuid}
-                    onJump={() => { window.open('http://' + url) }}
-                    // TODO: add fragmented identifiers
-                    patchScroll={patchScroll}
-                    setPageData={setPageData}
+                <SortableScrollList
+                    children={pageData.scrolls.map((details) =>
+                        <GenericScroll
+                            scrollDetails={details}
+                            key={details.uuid}
+                            onJump={() => { window.open('http://' + url) }}
+                            // TODO: add fragmented identifiers
+                            patchScroll={patchScroll}
+                            setPageData={setPageData}
+                            pageData={pageData}
+                        />)}
                     pageData={pageData}
-                />)
+                    setPageData={setPageData}
+                />
             } </>}
         </div>
     }
