@@ -24,7 +24,6 @@ const
             <h1> Your Marked Scroll Positions </h1>
             <TextInput label="search"
                 onChange={setSearchText} className="search"/>
-            <p> {searchText} </p>
             { entries(pagesByURL)
                 .filter(([url, details]) => (
                     !searchText
