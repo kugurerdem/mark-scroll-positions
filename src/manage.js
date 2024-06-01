@@ -63,8 +63,10 @@ const
             <div className="pageInfo">
                 <span> {maxPercentage}% </span>
                 <div className="pageHeader">
-                    <span> {pageData.title} </span>
-                    <span> {url} </span>
+                    <a href={'http://' + url} target="_blank">
+                        {pageData.title}
+                    </a>
+                    <a href={'http://' + url} target="_blank"> {url} </a>
                 </div>
                 <div>
                     { expand

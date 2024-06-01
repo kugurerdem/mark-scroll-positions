@@ -16,6 +16,12 @@ button:hover {
     transform: scale(1.1);
 }
 
+a {
+    text-decoration: none;
+    color: darkgreen;
+    font-weight: bold;
+}
+
 .icon {
     width: 16px;
     height: 16px;
