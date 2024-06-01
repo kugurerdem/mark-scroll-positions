@@ -28,7 +28,9 @@ const
                     !searchText
                     || url.includes(searchText)
                     || details.title.includes(searchText)
-                    || details.scrolls.some(s => s.note?.includes(searchText))
+                    || details.scrolls.some(s =>
+                        s.note?.includes(searchText)
+                        || s.name?.includes(searchText))
                 ))
                 .map(([url]) =>
                     <Page {...{url, setPagesByURL}} key={url}/>) }
