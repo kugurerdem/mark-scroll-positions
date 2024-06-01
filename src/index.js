@@ -34,8 +34,7 @@ const
 
     App = () => {
         const
-            {activeTab,
-                pageData, setPageData} = useContext(Context),
+            {activeTab, pageData, setPageData} = useContext(Context),
 
             onSave = useCallback(() => {
                 chrome.scripting.executeScript({
@@ -49,12 +48,8 @@ const
             }, []),
 
             handleDragEnd = (e) => {
-                const {active, over} = e
-
-                console.log({active, over})
-
-                if (over && active.id != over.id){
-                    const [oldIndex, newIndex] = [active.id, over.id].map(
+                if (e.over && e.active.id != e.over.id){
+                    const [oldIndex, newIndex] = [e.active.id, e.over.id].map(
                         id => pageData.scrolls.findIndex(s => s.uuid == id),
                     )
 
@@ -74,27 +69,16 @@ const
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToVerticalAxis]}
             >
-                <SortableContext items={
-                    pageData.scrolls.map(s => ({...s, id: s.uuid}))
-                }>
-                    {pageData.scrolls.map(
-                        (details) =>
-                            <Scroll {...details} key={details.uuid} />,
-                    )}
-                </SortableContext>
+                <SortableContext
+                    items={pageData.scrolls.map(s => ({...s, id: s.uuid}))}
+                    children={pageData.scrolls.map((details) =>
+                        <Scroll scrollDetails={details} key={details.uuid} />)}
+                />
             </DndContext>
         </>
     },
 
-    Scroll = ({
-        scrollPosition,
-        viewportHeight,
-        contentHeight,
-        dateISO,
-        uuid,
-        name,
-        note,
-    }) => {
+    Scroll = ({scrollDetails}) => {
         const
             {activeTab, pageData,
                 setPageData, patchScroll} = useContext(Context),
@@ -103,24 +87,15 @@ const
                 chrome.scripting.executeScript({
                     target: {tabId: activeTab.id},
                     func: jumpToScrollPosition,
-                    args: [{scrollPosition, viewportHeight, contentHeight}],
+                    args: [scrollDetails],
                 })
             }
 
 
         return GenericScroll({
-            scrollPosition,
-            viewportHeight,
-            contentHeight,
-            dateISO,
-            uuid,
-            name,
-            note,
-
+            scrollDetails,
             onJump,
-            pageData,
-            setPageData,
-            patchScroll,
+            pageData, setPageData, patchScroll,
         })
     },
 
@@ -149,24 +124,18 @@ const
             },
 
             pageData =
-            // eslint-disable-next-line max-len
-                (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {}
+                ((await chrome.storage.local.get(absoluteURL))[absoluteURL]
+                    || {scrolls: [], title: document.title})
 
-        pageData.scrolls = pageData.scrolls || []
-        pageData.title = pageData.title || document.title
         pageData.scrolls.push(scrollDetails)
 
-        await chrome.storage.local.set({
-            [absoluteURL]: pageData,
-        })
+        await chrome.storage.local.set({[absoluteURL]: pageData})
 
         return pageData
     },
 
     jumpToScrollPosition = ({
-        scrollPosition,
-        viewportHeight,
-        contentHeight,
+        scrollPosition, viewportHeight, contentHeight,
     }) => {
         const
             percentage = scrollPosition / (contentHeight - viewportHeight),

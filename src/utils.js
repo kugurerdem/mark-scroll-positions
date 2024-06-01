@@ -42,30 +42,23 @@ const
         </div>
     },
 
-    Button = ({text, icon, onClick}) => {
+    Button = ({text, icon, onClick, ...buttonProps}) => {
         const iconPath = `./assets/svgs/${icon}.svg`
-        return <button onClick={onClick}>
+        return <button {...buttonProps} onClick={onClick}>
             {icon && <img src={iconPath} className="icon"/>}
             {text && <span> {text} </span>}
         </button>
     },
 
     GenericScroll = ({
-        name,
-        note,
-        scrollPosition,
-        viewportHeight,
-        contentHeight,
-        dateISO,
-        uuid,
-
+        scrollDetails,
         onJump,
-
-        pageData,
-        setPageData,
-        patchScroll,
+        pageData, setPageData, patchScroll,
     }) => {
         const
+            {name, note, scrollPosition, viewportHeight,
+                contentHeight, dateISO, uuid} = scrollDetails,
+
             [displayNote, setDisplayNote] = useState(Boolean(note)),
 
             {attributes, listeners, setNodeRef,
@@ -86,25 +79,17 @@ const
             }
 
         return <div ref={setNodeRef} className="scroll" style={style} >
-            <TextInput
-                label="Scroll name" value={name} onBlur={onNameChange}/>
+            <TextInput label="Scroll name" value={name} onBlur={onNameChange}/>
             <div className="scroll-details">
-                <span>
-                    {calculateScrollPercentage(
-                        {scrollPosition, viewportHeight, contentHeight},
-                    )}%
-                </span>
+                <span> {calculateScrollPercentage(scrollDetails)}% </span>
                 <span> { dateISO.slice(0, 'XXXX-XX-XX'.length) } </span>
                 <span>
                     <Button onClick={onJump} icon="location-arrow" />
                     <Button onClick={onRemove} icon="trash-can" />
-                    { !displayNote
-                        && <Button onClick={handleAddNote} icon="note-sticky" />
-                    }
-                    <button {...attributes} {...listeners}>
-                        <img src="./assets/svgs/up-down-left-right.svg"
-                            className="icon" />
-                    </button>
+                    {!displayNote &&
+                        <Button onClick={handleAddNote} icon="note-sticky" />}
+                    <Button icon="up-down-left-right"
+                        {...attributes} {...listeners} />
                 </span>
             </div>
             { displayNote &&
@@ -116,10 +101,7 @@ const
 
     usePageDataState = (absoluteURL) => {
         const
-            [pageData, setPageData] = useState({
-                scrolls: [],
-                title: null,
-            }),
+            [pageData, setPageData] = useState({scrolls: [], title: null}),
 
             customSetPageData = data =>
                 chrome.storage.local.set({[absoluteURL] : data})
@@ -132,30 +114,22 @@ const
                     return s
                 })
 
-                customSetPageData({
-                    ...pageData,
-                    scrolls,
-                })
+                customSetPageData({...pageData, scrolls})
             }
 
         useEffect(() => {
-            chrome.storage.local.get(absoluteURL)
-                .then(r => {
-                    if (
-                        r[absoluteURL]
-                        && r[absoluteURL].scrolls?.length
-                        && r[absoluteURL].title
-                    )
-                        setPageData(r[absoluteURL])
-                })
+            chrome.storage.local.get(absoluteURL).then(r => {
+                const p = r[absoluteURL]
+                if ( p && p.scrolls?.length && p.title )
+                    setPageData(p)
+            })
         }, [])
 
         return [pageData, customSetPageData, patchScroll]
     },
 
-    calculateScrollPercentage = (d) => Math.ceil(
-        100 * (d.scrollPosition + d.viewportHeight) / d.contentHeight,
-    )
+    calculateScrollPercentage = (d) =>
+        Math.ceil(100 * (d.scrollPosition + d.viewportHeight) / d.contentHeight)
 
 
 module.exports = {

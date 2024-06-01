@@ -83,7 +83,7 @@ const
                 </div>
             </div> {expand && <> {
                 pageData.scrolls.map(d => <GenericScroll
-                    {...d} key={d.uuid}
+                    scrollDetails={d} key={d.uuid}
                     onJump={() => { window.open('http://' + url) }}
                     // TODO: add fragmented identifiers
                     patchScroll={patchScroll}
