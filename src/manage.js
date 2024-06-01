@@ -3,7 +3,7 @@ const
     {useState} = require('react'),
 
     {TextInput, Button, GenericScroll, SortableScrollList,
-        calculateScrollPercentage, usePageDataState} = require('./utils.js'),
+        calculateScrollPercentage, usePageDataState} = require('./common'),
 
     {entries} = Object,
 
