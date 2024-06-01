@@ -9,7 +9,6 @@ const
 
     main = async () => {
         const pageDetailsByURL = await chrome.storage.local.get()
-        // TODO: Change this with a state
 
         createRoot(document.getElementById('app'))
             .render(<App pageDetailsByURL={pageDetailsByURL} />)
@@ -31,12 +30,12 @@ const
                     || details.title.includes(searchText)
                     || details.scrolls.some(s => s.note?.includes(searchText))
                 ))
-                .map(([url, details]) =>
+                .map(([url]) =>
                     <Page {...{url, setPagesByURL}} key={url}/>) }
         </main>
     },
 
-    Page = ({ url, setPagesByURL }) => {
+    Page = ({url, setPagesByURL}) => {
         const
             [pageData, setPageData, patchScroll] = usePageDataState(url),
 
@@ -49,13 +48,14 @@ const
             handlePageDelete = () => {
                 chrome.storage.local.remove([url])
                 setPagesByURL(current => {
+                    // eslint-disable-next-line no-unused-vars
                     const {[url]: _, ...rest} = current
                     return rest
                 })
             },
 
             maxPercentage = Math.max(
-                0, ...pageData.scrolls.map(calculateScrollPercentage)
+                0, ...pageData.scrolls.map(calculateScrollPercentage),
             )
 
         return <div className="page">
@@ -90,7 +90,7 @@ const
                     setPageData={setPageData}
                     pageData={pageData}
                 />)
-                } </>}
+            } </>}
         </div>
     }
 

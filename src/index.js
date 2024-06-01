@@ -1,18 +1,15 @@
 const
     {createRoot} = require('react-dom/client'),
 
-    {useState, useCallback, useEffect,
-        createContext, useContext} = require('react'),
+    {useCallback, createContext, useContext} = require('react'),
 
     {SortableContext, arrayMove} = require('@dnd-kit/sortable'),
     {DndContext} = require('@dnd-kit/core'),
     {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
 
-    {Button, TextInput, GenericScroll, usePageDataState} = require('./utils'),
+    {Button, GenericScroll, usePageDataState} = require('./utils'),
 
     Context = createContext(),
-
-    {assign} = Object,
 
     main = async () => {
         const [activeTab] =
@@ -56,17 +53,15 @@ const
 
                 console.log({active, over})
 
-                if(over && active.id != over.id){
-                    const
-                        oldIndex =
-                            pageData.scrolls.findIndex(s => s.uuid == active.id),
-
-                        newIndex =
-                            pageData.scrolls.findIndex(s => s.uuid == over.id)
+                if (over && active.id != over.id){
+                    const [oldIndex, newIndex] = [active.id, over.id].map(
+                        id => pageData.scrolls.findIndex(s => s.uuid == id),
+                    )
 
                     setPageData({
                         ...pageData,
-                        scrolls: arrayMove(pageData.scrolls, oldIndex, newIndex)
+                        scrolls:
+                            arrayMove(pageData.scrolls, oldIndex, newIndex),
                     })
                 }
             }
