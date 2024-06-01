@@ -31,11 +31,17 @@ const
                 setSavedText(currentText)
             },
 
+            handleKeyDown = (e) => {
+                if (e.key == 'Enter')
+                    e.target.blur()
+            },
+
             props = {
                 type: 'text',
                 value: currentText,
                 onChange: handleInputChange,
                 onBlur: handleBlur,
+                onKeyDown: type == 'input' ? handleKeyDown : undefined,
             }
 
 
