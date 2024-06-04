@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "parcel serve --no-cache -p 8080 src/manifest.json src/manage.html --config @parcel/config-webextension",
-    "build": "rm -rf dist && parcel build --no-cache --no-scope-hoist src/manifest.json src/manage.html --config @parcel/config-webextension && cp -r src/assets dist/"
+    "build": "rm -rf dist && parcel build --no-cache --no-scope-hoist src/manifest.json src/manage.html --config @parcel/config-webextension && cp -r src/assets dist/",
+    "release": "npm run build && (cd dist && zip ../dist.zip -r *)"
   },
   "keywords": [],
   "author": "",

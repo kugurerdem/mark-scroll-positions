@@ -23,10 +23,4 @@ hot-reloading feature while building/contributing to this extension. Note that
 if you change static files such as assets, etc., you need to re-run `npm run
 build` for the changes to apply.
 
-To create a distributable release, use:
-
-`(cd dist && zip ../dist.zip -r *)`
-
-To create a source code release, use:
-
-`zip -r source.zip $(git ls-files)`
+To release a distributable zip, run `npm run release`
