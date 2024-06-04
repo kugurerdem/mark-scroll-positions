@@ -26,3 +26,7 @@ build` for the changes to apply.
 To create a distributable release, use:
 
 `(cd dist && zip ../dist.zip -r *)`
+
+To create a source code release, use:
+
+`zip -r source.zip $(git ls-files)`
