@@ -1,10 +1,13 @@
+import {createRoot} from 'react-dom/client'
+import {useState} from 'react'
+
+import {
+    TextInput, Button, GenericScroll, SortableScrollList,
+    calculateScrollPercentage, usePageDataState,
+} from './common'
+
+
 const
-    {createRoot} = require('react-dom/client'),
-    {useState} = require('react'),
-
-    {TextInput, Button, GenericScroll, SortableScrollList,
-        calculateScrollPercentage, usePageDataState} = require('./common'),
-
     {entries} = Object,
 
     main = async () => {

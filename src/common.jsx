@@ -1,12 +1,13 @@
+import {useState, useEffect} from 'react'
+import {SortableContext, arrayMove} from '@dnd-kit/sortable'
+import {DndContext} from '@dnd-kit/core'
+import {restrictToVerticalAxis} from '@dnd-kit/modifiers'
+
+import {useSortable} from '@dnd-kit/sortable'
+import {CSS} from '@dnd-kit/utilities'
+
+
 const
-    {useState, useEffect} = require('react'),
-    {SortableContext, arrayMove} = require('@dnd-kit/sortable'),
-    {DndContext} = require('@dnd-kit/core'),
-    {restrictToVerticalAxis} = require('@dnd-kit/modifiers'),
-
-    {useSortable} = require('@dnd-kit/sortable'),
-    {CSS} = require('@dnd-kit/utilities'),
-
     {assign} = Object,
 
     TextInput = ({
@@ -52,7 +53,7 @@ const
     },
 
     Button = ({text, icon, onClick, ...buttonProps}) => {
-        const iconPath = `./assets/svgs/${icon}.svg`
+        const iconPath = `/assets/svgs/${icon}.svg`
         return <button {...buttonProps} onClick={onClick}>
             {icon && <img src={iconPath} className="icon"/>}
             {text && <span> {text} </span>}
@@ -165,7 +166,7 @@ const
         Math.ceil(100 * (d.scrollPosition + d.viewportHeight) / d.contentHeight)
 
 
-module.exports = {
+export {
     TextInput, Button, GenericScroll, SortableScrollList,
     usePageDataState, calculateScrollPercentage,
 }
