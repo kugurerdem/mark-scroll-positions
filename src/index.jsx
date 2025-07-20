@@ -1,11 +1,10 @@
+import {createRoot} from 'react-dom/client'
+import {useCallback, createContext, useContext} from 'react'
+import {
+    Button, GenericScroll, SortableScrollList, usePageDataState,
+} from './common'
+
 const
-    {createRoot} = require('react-dom/client'),
-
-    {useCallback, createContext, useContext} = require('react'),
-
-    {Button, GenericScroll,
-        SortableScrollList, usePageDataState} = require('./common'),
-
     Context = createContext(),
 
     main = async () => {
