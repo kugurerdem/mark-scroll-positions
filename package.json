@@ -6,7 +6,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "watch": "vite build --watch",
-    "start:firefox": "web-ext run --source-dir=./build --target=firefox-desktop"
+    "start:firefox": "web-ext run --source-dir=./build --target=firefox-desktop",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,8 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.1.1",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^8.53.0",
     "eslint-plugin-react": "^7.33.2",
