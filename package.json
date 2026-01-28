@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "vite ./src",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "watch": "vite build --watch",
+    "start:firefox": "web-ext run --source-dir=./build --target=firefox-desktop"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,7 @@
     "eslint-plugin-react": "^7.33.2",
     "process": "^0.11.10",
     "typescript": "^5.8.3",
-    "vite": "^7.0.5"
+    "vite": "^7.0.5",
+    "web-ext": "^9.2.0"
   }
 }

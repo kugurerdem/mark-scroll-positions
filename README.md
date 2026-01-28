@@ -10,17 +10,26 @@ this project.
 
 # Development
 
-Install the dependencies using npm,
+Install the dependencies using npm:
 
-`npm run install`
+```
+npm install
+```
 
-Then, build the dist folder:
+Then, build the extension:
 
-`npm run build`
+```
+npm run build
+```
 
-After running `npm run build`, you can use `npm run start` to benefit from the
-hot-reloading feature while building/contributing to this extension. Note that
-if you change static files such as assets, etc., you need to re-run `npm run
-build` for the changes to apply.
+For development with hot-reloading in Firefox, run these commands in two
+separate terminals:
 
-To release a distributable zip, run `npm run release`
+```
+npm run watch
+npm run start:firefox
+```
+
+The first command watches for file changes and rebuilds automatically. The
+second command opens Firefox with the extension loaded and reloads it whenever
+the build output changes.
