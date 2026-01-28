@@ -46,17 +46,20 @@ export const TextInput = ({
         if (e.key == 'Enter') (e.target as HTMLElement).blur()
     }
 
+    const inputClasses = "w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+
     const props = {
         type: 'text' as const,
         value: currentText,
         onChange: handleInputChange,
         onBlur: handleBlur,
         onKeyDown: type == 'input' ? handleKeyDown : undefined,
+        className: inputClasses,
     }
 
     return (
-        <div className={className}>
-            {label && <label> {label} </label>}
+        <div className={`mb-2 ${className || ''}`}>
+            {label && <label className="block text-sm text-slate-600 mb-1"> {label} </label>}
             {type == 'input' ? <input {...props} /> : <textarea {...props} />}
         </div>
     )
@@ -65,9 +68,13 @@ export const TextInput = ({
 export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
     const iconPath = `/assets/svgs/${icon}.svg`
     return (
-        <button {...buttonProps} onClick={onClick}>
-            {icon && <img src={iconPath} className="icon" />}
-            {text && <span> {text} </span>}
+        <button
+            {...buttonProps}
+            onClick={onClick}
+            className="p-2 hover:scale-110 transition-transform cursor-pointer"
+        >
+            {icon && <img src={iconPath} className="w-4 h-4 inline-block" />}
+            {text && <span className="ml-1"> {text} </span>}
         </button>
     )
 }
@@ -135,11 +142,11 @@ export const GenericScroll = ({
     }
 
     return (
-        <div ref={setNodeRef} className="scroll" style={style}>
+        <div ref={setNodeRef} className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm" style={style}>
             <TextInput label="Scroll name" value={name} onBlur={onNameChange} />
-            <div className="scroll-details">
-                <span> {calculateScrollPercentage(scrollDetails)}% </span>
-                <span> {dateISO.slice(0, 'XXXX-XX-XX'.length)} </span>
+            <div className="w-full flex items-center justify-between">
+                <span className="text-slate-600"> {calculateScrollPercentage(scrollDetails)}% </span>
+                <span className="text-slate-500 text-sm"> {dateISO.slice(0, 'XXXX-XX-XX'.length)} </span>
                 <span>
                     <Button onClick={onJump} icon="location-arrow" />
                     <Button onClick={onRemove} icon="trash-can" />

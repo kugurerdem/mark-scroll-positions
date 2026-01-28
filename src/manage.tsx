@@ -32,13 +32,13 @@ const App = ({pageDetailsByURL}: AppProps) => {
     const [pagesByURL, setPagesByURL] = useState(pageDetailsByURL)
 
     return (
-        <main>
-            <h1> Your Marked Scroll Positions </h1>
+        <main className="bg-white mx-auto my-8 p-4 rounded-xl shadow-lg max-w-4xl">
+            <h1 className="text-2xl font-bold text-center text-slate-800 mb-4"> Your Marked Scroll Positions </h1>
             <TextInput
                 label="search"
                 value=""
                 onChange={setSearchText}
-                className="search"
+                className="mx-auto w-48"
             />
             {entries(pagesByURL)
                 .filter(
@@ -88,16 +88,15 @@ const Page = ({url, setPagesByURL}: PageProps) => {
     )
 
     return (
-        <div className="page">
-            <div className="pageInfo">
-                <span> {maxPercentage}% </span>
-                <div className="pageHeader">
-                    <a href={'http://' + url} target="_blank">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mx-auto my-4 max-w-3xl">
+            <div className="w-full flex items-center justify-around">
+                <span className="text-slate-600 font-medium"> {maxPercentage}% </span>
+                <div className="flex flex-col w-80">
+                    <a href={'http://' + url} target="_blank" className="text-blue-600 font-semibold hover:text-blue-800 hover:underline">
                         {pageData.title}
                     </a>
-                    <a href={'http://' + url} target="_blank">
-                        {' '}
-                        {url}{' '}
+                    <a href={'http://' + url} target="_blank" className="text-blue-600 text-sm hover:text-blue-800 hover:underline truncate">
+                        {url}
                     </a>
                 </div>
                 <div>
@@ -121,30 +120,24 @@ const Page = ({url, setPagesByURL}: PageProps) => {
                         onClick={handlePageDelete}
                     />
                 </div>
-            </div>{' '}
+            </div>
             {expand && (
-                <>
-                    {' '}
-                    {
-                        <SortableScrollList
-                            children={pageData.scrolls.map((details) => (
-                                <GenericScroll
-                                    scrollDetails={details}
-                                    key={details.uuid}
-                                    onJump={() => {
-                                        window.open('http://' + url)
-                                    }}
-                                    // TODO: add fragmented identifiers
-                                    patchScroll={patchScroll}
-                                    setPageData={setPageData}
-                                    pageData={pageData}
-                                />
-                            ))}
-                            pageData={pageData}
+                <SortableScrollList
+                    children={pageData.scrolls.map((details) => (
+                        <GenericScroll
+                            scrollDetails={details}
+                            key={details.uuid}
+                            onJump={() => {
+                                window.open('http://' + url)
+                            }}
+                            patchScroll={patchScroll}
                             setPageData={setPageData}
+                            pageData={pageData}
                         />
-                    }{' '}
-                </>
+                    ))}
+                    pageData={pageData}
+                    setPageData={setPageData}
+                />
             )}
         </div>
     )

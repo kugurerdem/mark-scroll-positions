@@ -1,6 +1,7 @@
 {
   "name": "scroller",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite ./src",
     "build": "vite build",
@@ -22,13 +23,17 @@
     "vite-plugin-static-copy": "^3.1.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/chrome": "^0.1.1",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.23",
     "eslint": "^8.53.0",
     "eslint-plugin-react": "^7.33.2",
+    "postcss": "^8.5.6",
     "process": "^0.11.10",
+    "tailwindcss": "^4.1.18",
     "typescript": "^5.8.3",
     "vite": "^7.0.5",
     "web-ext": "^9.2.0"
