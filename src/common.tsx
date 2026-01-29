@@ -1,9 +1,4 @@
 import {useState, useEffect} from 'react'
-import {SortableContext, arrayMove} from '@dnd-kit/sortable'
-import {DndContext, DragEndEvent} from '@dnd-kit/core'
-import {restrictToVerticalAxis} from '@dnd-kit/modifiers'
-import {useSortable} from '@dnd-kit/sortable'
-import {CSS} from '@dnd-kit/utilities'
 
 import type {
     ScrollDetails,
@@ -73,8 +68,8 @@ export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
             onClick={onClick}
             className="p-2 hover:scale-110 transition-transform cursor-pointer"
         >
-            {icon && <img src={iconPath} className="w-4 h-4 inline-block" />}
-            {text && <span className="ml-1"> {text} </span>}
+            {icon && <img src={iconPath} className="w-4 h-4 inline-block pointer-events-none" />}
+            {text && <span className="ml-1 pointer-events-none"> {text} </span>}
         </button>
     )
 }
@@ -84,26 +79,68 @@ export const SortableScrollList = ({
     pageData,
     setPageData,
 }: SortableScrollListProps) => {
-    const handleDragEnd = (e: DragEndEvent) => {
-        if (e.over && e.active.id != e.over.id) {
-            const [oldIndex, newIndex] = [e.active.id, e.over.id].map((id) =>
-                pageData.scrolls.findIndex((s) => s.uuid == id)
-            )
+    const [draggedId, setDraggedId] = useState<string | null>(null)
+    const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-            setPageData({
-                ...pageData,
-                scrolls: arrayMove(pageData.scrolls, oldIndex, newIndex),
-            })
+    const handleDragStart = (e: React.DragEvent, uuid: string) => {
+        setDraggedId(uuid)
+        e.dataTransfer.effectAllowed = 'move'
+    }
+
+    const handleDragOver = (e: React.DragEvent, uuid: string) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        if (uuid !== draggedId) {
+            setDragOverId(uuid)
         }
     }
 
+    const handleDragLeave = () => {
+        setDragOverId(null)
+    }
+
+    const handleDrop = (targetUuid: string) => {
+        if (draggedId && draggedId !== targetUuid) {
+            const scrolls = [...pageData.scrolls]
+            const dragIdx = scrolls.findIndex((s) => s.uuid === draggedId)
+            const dropIdx = scrolls.findIndex((s) => s.uuid === targetUuid)
+            const [removed] = scrolls.splice(dragIdx, 1)
+            scrolls.splice(dropIdx, 0, removed)
+            setPageData({...pageData, scrolls})
+        }
+        setDraggedId(null)
+        setDragOverId(null)
+    }
+
+    const handleDragEnd = () => {
+        setDraggedId(null)
+        setDragOverId(null)
+    }
+
     return (
-        <DndContext onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
-            <SortableContext
-                items={pageData.scrolls.map((s) => ({...s, id: s.uuid}))}
-                children={children}
-            />
-        </DndContext>
+        <div>
+            {pageData.scrolls.map((scroll) => {
+                const isDragged = scroll.uuid === draggedId
+                const isDragOver = scroll.uuid === dragOverId
+
+                return (
+                    <div
+                        key={scroll.uuid}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, scroll.uuid)}
+                        onDragOver={(e) => handleDragOver(e, scroll.uuid)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={() => handleDrop(scroll.uuid)}
+                        onDragEnd={handleDragEnd}
+                        className={`transition-all duration-150 ${
+                            isDragged ? 'opacity-50 scale-95' : ''
+                        } ${isDragOver ? 'ring-2 ring-blue-400 ring-offset-2 rounded-xl' : ''}`}
+                    >
+                        {children.find((child: any) => child.key === scroll.uuid)}
+                    </div>
+                )
+            })}
+        </div>
     )
 }
 
@@ -117,14 +154,6 @@ export const GenericScroll = ({
     const {name, note, dateISO, uuid} = scrollDetails
 
     const [displayNote, setDisplayNote] = useState(Boolean(note))
-
-    const {attributes, listeners, setNodeRef, transform, transition} =
-        useSortable({id: uuid})
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    }
 
     const handleAddNote = () => {
         setDisplayNote(true)
@@ -142,7 +171,7 @@ export const GenericScroll = ({
     }
 
     return (
-        <div ref={setNodeRef} className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm" style={style}>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm cursor-grab">
             <TextInput label="Scroll name" value={name} onBlur={onNameChange} />
             <div className="w-full flex items-center justify-between">
                 <span className="text-slate-600"> {calculateScrollPercentage(scrollDetails)}% </span>
@@ -153,7 +182,9 @@ export const GenericScroll = ({
                     {!displayNote && (
                         <Button onClick={handleAddNote} icon="note-sticky" />
                     )}
-                    <Button icon="up-down-left-right" {...attributes} {...listeners} />
+                    <span className="p-2 inline-block">
+                        <img src="/assets/svgs/up-down-left-right.svg" className="w-4 h-4" />
+                    </span>
                 </span>
             </div>
             {displayNote && (

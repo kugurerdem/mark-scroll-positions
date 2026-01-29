@@ -46,6 +46,7 @@ const Boot = ({activeTab}: BootProps) => {
 const App = () => {
     const {activeTab, pageData, setPageData} = useBootContext()
 
+
     const onSave = useCallback(() => {
         chrome.scripting
             .executeScript({
