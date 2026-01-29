@@ -182,9 +182,6 @@ export const GenericScroll = ({
                     {!displayNote && (
                         <Button onClick={handleAddNote} icon="note-sticky" />
                     )}
-                    <span className="p-2 inline-block">
-                        <img src="/assets/svgs/up-down-left-right.svg" className="w-4 h-4" />
-                    </span>
                 </span>
             </div>
             {displayNote && (
