@@ -230,18 +230,20 @@ export const GenericScroll = ({
                         onBlur={handleNameBlur}
                         onKeyDown={handleNameKeyDown}
                         autoFocus
-                        className="text-slate-700 font-medium flex-1 px-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="text-slate-700 font-medium min-w-0 flex-1 px-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 ) : (
                     <span
-                        className="text-slate-700 font-medium cursor-text hover:text-blue-600 flex-1"
+                        className="text-slate-700 font-medium cursor-text hover:text-blue-600 truncate max-w-48"
                         onClick={handleNameClick}
                     >
                         {name}
                     </span>
                 )}
-                <Button onClick={onJump} icon="play" />
-                <Button onClick={() => setExpanded(!expanded)} icon={expanded ? 'angle-up' : 'angle-down'} />
+                <span className="ml-auto flex-shrink-0">
+                    <Button onClick={onJump} icon="play" />
+                    <Button onClick={() => setExpanded(!expanded)} icon={expanded ? 'angle-up' : 'angle-down'} />
+                </span>
             </div>
             {expanded && (
                 <>
