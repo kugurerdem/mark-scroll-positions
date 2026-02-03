@@ -155,6 +155,8 @@ export const GenericScroll = ({
     const {name, note, dateISO, uuid} = scrollDetails
 
     const [displayNote, setDisplayNote] = useState(Boolean(note))
+    const [editingName, setEditingName] = useState(false)
+    const [nameValue, setNameValue] = useState(name)
 
     const handleAddNote = () => {
         setDisplayNote(true)
@@ -162,8 +164,19 @@ export const GenericScroll = ({
     const onNoteChange = (note: string) => {
         patchScroll(uuid, {note})
     }
-    const onNameChange = (name: string) => {
-        patchScroll(uuid, {name})
+    const handleNameClick = () => {
+        setEditingName(true)
+    }
+    const handleNameBlur = () => {
+        setEditingName(false)
+        if (nameValue !== name) {
+            patchScroll(uuid, {name: nameValue})
+        }
+    }
+    const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            (e.target as HTMLInputElement).blur()
+        }
     }
 
     const onRemove = () => {
@@ -173,7 +186,24 @@ export const GenericScroll = ({
 
     return (
         <div className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm cursor-grab">
-            <TextInput label="Scroll name" value={name} onBlur={onNameChange} />
+            {editingName ? (
+                <input
+                    type="text"
+                    value={nameValue}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    onBlur={handleNameBlur}
+                    onKeyDown={handleNameKeyDown}
+                    autoFocus
+                    className="text-slate-700 font-medium mb-2 w-full px-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            ) : (
+                <div
+                    className="text-slate-700 font-medium mb-2 cursor-text hover:text-blue-600"
+                    onClick={handleNameClick}
+                >
+                    {name}
+                </div>
+            )}
             <div className="w-full flex items-center justify-between">
                 <span className="text-slate-600"> {calculateScrollPercentage(scrollDetails)}% </span>
                 <span className="text-slate-500 text-sm"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>

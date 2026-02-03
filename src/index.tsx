@@ -115,6 +115,14 @@ const saveScrollDetails = async (): Promise<PageData> => {
 
     const uuid = crypto.randomUUID()
 
+    const pageData: PageData =
+        (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {
+            scrolls: [],
+            title: document.title,
+        }
+
+    const markNumber = pageData.scrolls.length + 1
+
     const scrollDetails: ScrollDetails = {
         // NOTE: scrollPosition + viewportHeight = contentHeight
         scrollPosition: window.pageYOffset,
@@ -122,15 +130,9 @@ const saveScrollDetails = async (): Promise<PageData> => {
         contentHeight: document.body.scrollHeight,
         dateISO: new Date().toISOString(),
         uuid,
-        name: uuid,
+        name: `Mark #${markNumber}`,
         note: '',
     }
-
-    const pageData: PageData =
-        (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {
-            scrolls: [],
-            title: document.title,
-        }
 
     pageData.scrolls.push(scrollDetails)
 
