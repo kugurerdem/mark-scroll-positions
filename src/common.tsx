@@ -219,7 +219,7 @@ export const GenericScroll = ({
     const [expanded, setExpanded] = useState(false)
 
     return (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm cursor-grab">
+        <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 m-2 shadow-sm cursor-grab hover:shadow-md hover:border-slate-300 transition-all">
             <div className="flex items-center gap-2">
                 <CircularProgress percentage={calculateScrollPercentage(scrollDetails)} />
                 {editingName ? (
