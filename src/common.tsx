@@ -234,10 +234,10 @@ export const GenericScroll = ({
                     />
                 ) : (
                     <span
-                        className="text-slate-700 font-medium cursor-text hover:text-blue-600 truncate max-w-48"
+                        className={`font-medium cursor-text hover:text-blue-600 truncate max-w-48 ${name ? 'text-slate-700' : 'text-slate-400 italic'}`}
                         onClick={handleNameClick}
                     >
-                        {name}
+                        {name || 'Add a title'}
                     </span>
                 )}
                 <span className="ml-auto flex-shrink-0">
