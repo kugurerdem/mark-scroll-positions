@@ -1,4 +1,5 @@
 import {useState, useEffect} from 'react'
+import {format} from 'date-fns'
 
 import type {
     ScrollDetails,
@@ -175,7 +176,7 @@ export const GenericScroll = ({
             <TextInput label="Scroll name" value={name} onBlur={onNameChange} />
             <div className="w-full flex items-center justify-between">
                 <span className="text-slate-600"> {calculateScrollPercentage(scrollDetails)}% </span>
-                <span className="text-slate-500 text-sm"> {dateISO.slice(0, 'XXXX-XX-XX'.length)} </span>
+                <span className="text-slate-500 text-sm"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
                 <span>
                     <Button onClick={onJump} icon="location-arrow" />
                     <Button onClick={onRemove} icon="trash-can" />
