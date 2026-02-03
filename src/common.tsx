@@ -75,6 +75,38 @@ export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
     )
 }
 
+const CircularProgress = ({percentage}: {percentage: number}) => {
+    const size = 24
+    const strokeWidth = 3
+    const radius = (size - strokeWidth) / 2
+    const circumference = 2 * Math.PI * radius
+    const offset = circumference - (percentage / 100) * circumference
+
+    return (
+        <svg width={size} height={size} className="transform -rotate-90">
+            <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke="#e2e8f0"
+                strokeWidth={strokeWidth}
+            />
+            <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth={strokeWidth}
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                strokeLinecap="round"
+            />
+        </svg>
+    )
+}
+
 export const SortableScrollList = ({
     children,
     pageData,
@@ -186,26 +218,28 @@ export const GenericScroll = ({
 
     return (
         <div className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm cursor-grab">
-            {editingName ? (
-                <input
-                    type="text"
-                    value={nameValue}
-                    onChange={(e) => setNameValue(e.target.value)}
-                    onBlur={handleNameBlur}
-                    onKeyDown={handleNameKeyDown}
-                    autoFocus
-                    className="text-slate-700 font-medium mb-2 w-full px-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-            ) : (
-                <div
-                    className="text-slate-700 font-medium mb-2 cursor-text hover:text-blue-600"
-                    onClick={handleNameClick}
-                >
-                    {name}
-                </div>
-            )}
+            <div className="flex items-center gap-2 mb-2">
+                <CircularProgress percentage={calculateScrollPercentage(scrollDetails)} />
+                {editingName ? (
+                    <input
+                        type="text"
+                        value={nameValue}
+                        onChange={(e) => setNameValue(e.target.value)}
+                        onBlur={handleNameBlur}
+                        onKeyDown={handleNameKeyDown}
+                        autoFocus
+                        className="text-slate-700 font-medium flex-1 px-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                ) : (
+                    <span
+                        className="text-slate-700 font-medium cursor-text hover:text-blue-600"
+                        onClick={handleNameClick}
+                    >
+                        {name}
+                    </span>
+                )}
+            </div>
             <div className="w-full flex items-center justify-between">
-                <span className="text-slate-600"> {calculateScrollPercentage(scrollDetails)}% </span>
                 <span className="text-slate-500 text-sm"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
                 <span>
                     <Button onClick={onJump} icon="location-arrow" />
