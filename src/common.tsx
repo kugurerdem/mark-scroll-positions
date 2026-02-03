@@ -216,9 +216,11 @@ export const GenericScroll = ({
         setPageData({...pageData, scrolls})
     }
 
+    const [expanded, setExpanded] = useState(false)
+
     return (
         <div className="bg-white border border-slate-200 rounded-xl p-4 m-2 shadow-sm cursor-grab">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2">
                 <CircularProgress percentage={calculateScrollPercentage(scrollDetails)} />
                 {editingName ? (
                     <input
@@ -232,30 +234,35 @@ export const GenericScroll = ({
                     />
                 ) : (
                     <span
-                        className="text-slate-700 font-medium cursor-text hover:text-blue-600"
+                        className="text-slate-700 font-medium cursor-text hover:text-blue-600 flex-1"
                         onClick={handleNameClick}
                     >
                         {name}
                     </span>
                 )}
+                <Button onClick={onJump} icon="play" />
+                <Button onClick={() => setExpanded(!expanded)} icon={expanded ? 'angle-up' : 'angle-down'} />
             </div>
-            <div className="w-full flex items-center justify-between">
-                <span className="text-slate-500 text-sm"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
-                <span>
-                    <Button onClick={onJump} icon="location-arrow" />
-                    <Button onClick={onRemove} icon="trash-can" />
-                    {!displayNote && (
-                        <Button onClick={handleAddNote} icon="note-sticky" />
+            {expanded && (
+                <>
+                    <div className="w-full flex items-center justify-between mt-2">
+                        <span className="text-slate-500 text-sm"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
+                        <span>
+                            <Button onClick={onRemove} icon="trash-can" />
+                            {!displayNote && (
+                                <Button onClick={handleAddNote} icon="note-sticky" />
+                            )}
+                        </span>
+                    </div>
+                    {displayNote && (
+                        <TextInput
+                            type="textarea"
+                            label="Note"
+                            value={note}
+                            onBlur={onNoteChange}
+                        />
                     )}
-                </span>
-            </div>
-            {displayNote && (
-                <TextInput
-                    type="textarea"
-                    label="Note"
-                    value={note}
-                    onBlur={onNoteChange}
-                />
+                </>
             )}
         </div>
     )
