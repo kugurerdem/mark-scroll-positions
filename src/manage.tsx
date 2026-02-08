@@ -9,7 +9,7 @@ import {
     usePageDataState,
 } from './common'
 
-import type {PageDetailsByURL} from './types'
+import type {PageDetailsByURL, ScrollDetails} from './types'
 
 const {entries} = Object
 
@@ -127,6 +127,68 @@ const relativeDate = (iso: string): string => {
     return `${months}mo ago`
 }
 
+const jumpToScrollPosition = ({
+    scrollPosition,
+    viewportHeight,
+    contentHeight,
+}: Pick<ScrollDetails, 'scrollPosition' | 'viewportHeight' | 'contentHeight'>) => {
+    const percentage = scrollPosition / (contentHeight - viewportHeight)
+    const toJumpPositionY =
+        percentage * (document.body.scrollHeight - window.innerHeight)
+
+    window.scrollTo(0, toJumpPositionY)
+}
+
+const waitForTabToFinishLoading = (tabId: number): Promise<void> =>
+    new Promise((resolve) => {
+        const onUpdated = (
+            updatedTabId: number,
+            changeInfo: {status?: string}
+        ) => {
+            if (updatedTabId === tabId && changeInfo.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(onUpdated)
+                resolve()
+            }
+        }
+
+        chrome.tabs.onUpdated.addListener(onUpdated)
+    })
+
+const ensureAllSitesPermission = async (): Promise<boolean> => {
+    const allOrigins = ['<all_urls>']
+
+    if (!chrome.permissions?.request) return true
+
+    try {
+        return await chrome.permissions.request({origins: allOrigins})
+    } catch {
+        return chrome.permissions.contains({origins: allOrigins})
+    }
+}
+
+const jumpToMarkedPosition = async (url: string, scrollDetails: ScrollDetails) => {
+    const granted = await ensureAllSitesPermission()
+    if (!granted) {
+        window.alert('All-sites permission is required to jump to saved marks.')
+        return
+    }
+
+    const tab = await chrome.tabs.create({url: 'http://' + url})
+    if (!tab.id) return
+
+    await waitForTabToFinishLoading(tab.id)
+
+    try {
+        await chrome.scripting.executeScript({
+            target: {tabId: tab.id},
+            func: jumpToScrollPosition,
+            args: [scrollDetails],
+        })
+    } catch {
+        window.alert('Could not inject jump script into this page.')
+    }
+}
+
 const Page = ({url, setPagesByURL}: PageProps) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(url)
 
@@ -197,7 +259,7 @@ const Page = ({url, setPagesByURL}: PageProps) => {
                                 scrollDetails={details}
                                 key={details.uuid}
                                 onJump={() => {
-                                    window.open('http://' + url)
+                                    void jumpToMarkedPosition(url, details)
                                 }}
                                 patchScroll={patchScroll}
                                 setPageData={setPageData}
