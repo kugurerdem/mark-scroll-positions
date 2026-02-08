@@ -1,4 +1,5 @@
 import type {ReactNode, ButtonHTMLAttributes} from 'react'
+import type {IconDefinition} from '@fortawesome/fontawesome-svg-core'
 
 // Core domain types
 
@@ -55,7 +56,7 @@ export interface TextInputProps {
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string;
-  icon?: string;
+  icon?: IconDefinition;
 }
 
 // Hook return type
