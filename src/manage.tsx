@@ -123,14 +123,14 @@ const Page = ({url, setPagesByURL}: PageProps) => {
                         onClick={handleExpand}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cream-300 bg-cream-100 text-ink-500 text-xs font-medium cursor-pointer transition-all hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
                     >
-                        <FontAwesomeIcon icon={expand ? faAngleUp : faAngleDown} className="w-3 h-3 opacity-50 pointer-events-none" />
+                        <FontAwesomeIcon icon={expand ? faAngleUp : faAngleDown} className="w-3 h-3 text-current pointer-events-none" />
                         {expand ? 'Collapse' : 'Expand'}
                     </button>
                     <button
                         onClick={handlePageDelete}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all hover:bg-red-50 hover:scale-105 group"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-ink-400 cursor-pointer transition-all hover:bg-red-50 hover:text-red-500 hover:scale-105"
                     >
-                        <FontAwesomeIcon icon={faTrashCan} className="w-3.5 h-3.5 opacity-40 pointer-events-none group-hover:opacity-70" />
+                        <FontAwesomeIcon icon={faTrashCan} className="w-3.5 h-3.5 text-current pointer-events-none" />
                     </button>
                 </div>
             </div>
