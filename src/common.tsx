@@ -1,5 +1,7 @@
 import {useState, useEffect} from 'react'
 import {format} from 'date-fns'
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
+import {faPlay, faAngleUp, faAngleDown, faTrashCan, faNoteSticky} from '@fortawesome/free-solid-svg-icons'
 
 import type {
     ScrollDetails,
@@ -42,7 +44,7 @@ export const TextInput = ({
         if (e.key == 'Enter') (e.target as HTMLElement).blur()
     }
 
-    const inputClasses = "w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    const inputClasses = "w-full px-3 py-2 border border-cream-300 rounded-lg bg-white font-body text-[13px] text-ink-700 outline-none transition-all focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(245,158,11,0.1)] placeholder:text-ink-300"
 
     const props = {
         type: 'text' as const,
@@ -55,41 +57,40 @@ export const TextInput = ({
 
     return (
         <div className={`mb-2 ${className || ''}`}>
-            {label && <label className="block text-sm text-slate-600 mb-1"> {label} </label>}
+            {label && <label className="block text-xs font-medium text-ink-400 mb-1 uppercase tracking-wider"> {label} </label>}
             {type == 'input' ? <input {...props} /> : <textarea {...props} />}
         </div>
     )
 }
 
 export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
-    const iconPath = `/assets/svgs/${icon}.svg`
     return (
         <button
             {...buttonProps}
             onClick={onClick}
-            className="p-2 hover:scale-110 transition-transform cursor-pointer"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-transparent cursor-pointer transition-all hover:bg-amber-100 hover:scale-110"
         >
-            {icon && <img src={iconPath} className="w-4 h-4 inline-block pointer-events-none" />}
-            {text && <span className="ml-1 pointer-events-none"> {text} </span>}
+            {icon && <FontAwesomeIcon icon={icon} className="w-3.5 h-3.5 opacity-50 pointer-events-none transition-opacity hover:opacity-100" />}
+            {text && <span className="ml-1 text-sm font-medium text-ink-700 pointer-events-none"> {text} </span>}
         </button>
     )
 }
 
 const CircularProgress = ({percentage}: {percentage: number}) => {
-    const size = 24
-    const strokeWidth = 3
+    const size = 26
+    const strokeWidth = 2.5
     const radius = (size - strokeWidth) / 2
     const circumference = 2 * Math.PI * radius
     const offset = circumference - (percentage / 100) * circumference
 
     return (
-        <svg width={size} height={size} className="transform -rotate-90">
+        <svg width={size} height={size} className="transform -rotate-90 flex-shrink-0">
             <circle
                 cx={size / 2}
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke="#e2e8f0"
+                stroke="#ede4d6"
                 strokeWidth={strokeWidth}
             />
             <circle
@@ -97,11 +98,12 @@ const CircularProgress = ({percentage}: {percentage: number}) => {
                 cy={size / 2}
                 r={radius}
                 fill="none"
-                stroke="#3b82f6"
+                stroke="#d97706"
                 strokeWidth={strokeWidth}
                 strokeDasharray={circumference}
                 strokeDashoffset={offset}
                 strokeLinecap="round"
+                className="transition-all duration-500"
             />
         </svg>
     )
@@ -151,7 +153,7 @@ export const SortableScrollList = ({
     }
 
     return (
-        <div>
+        <div className="flex flex-col gap-1.5">
             {pageData.scrolls.map((scroll) => {
                 const isDragged = scroll.uuid === draggedId
                 const isDragOver = scroll.uuid === dragOverId
@@ -166,8 +168,8 @@ export const SortableScrollList = ({
                         onDrop={() => handleDrop(scroll.uuid)}
                         onDragEnd={handleDragEnd}
                         className={`transition-all duration-150 ${
-                            isDragged ? 'opacity-50 scale-95' : ''
-                        } ${isDragOver ? 'ring-2 ring-blue-400 ring-offset-2 rounded-xl' : ''}`}
+                            isDragged ? 'opacity-40 scale-[0.97]' : ''
+                        } ${isDragOver ? 'outline-2 outline-amber-400 outline-offset-2 rounded-xl' : ''}`}
                     >
                         {children.find((child: any) => child.key === scroll.uuid)}
                     </div>
@@ -217,42 +219,53 @@ export const GenericScroll = ({
     }
 
     const [expanded, setExpanded] = useState(false)
+    const percentage = calculateScrollPercentage(scrollDetails)
 
     return (
-        <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 m-2 shadow-sm cursor-grab hover:shadow-md hover:border-slate-300 transition-all">
-            <div className="flex items-center gap-2">
-                <CircularProgress percentage={calculateScrollPercentage(scrollDetails)} />
-                {editingName ? (
-                    <input
-                        type="text"
-                        value={nameValue}
-                        onChange={(e) => setNameValue(e.target.value)}
-                        onBlur={handleNameBlur}
-                        onKeyDown={handleNameKeyDown}
-                        autoFocus
-                        className="text-slate-700 font-medium min-w-0 flex-1 px-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                ) : (
-                    <span
-                        className={`font-medium cursor-text hover:text-blue-600 truncate max-w-48 ${name ? 'text-slate-700' : 'text-slate-400 italic'}`}
-                        onClick={handleNameClick}
-                    >
-                        {name || 'Add a title'}
+        <div className="bg-cream-100 border border-cream-300 rounded-xl px-3.5 py-2.5 cursor-grab transition-all duration-200 hover:border-amber-300 hover:shadow-[0_2px_12px_-2px_rgba(245,158,11,0.12),0_1px_4px_-1px_rgba(0,0,0,0.05)] hover:-translate-y-px active:cursor-grabbing">
+            <div className="flex items-center gap-2.5">
+                <CircularProgress percentage={percentage} />
+                <div className="flex flex-col min-w-0 flex-1">
+                    {editingName ? (
+                        <input
+                            type="text"
+                            value={nameValue}
+                            onChange={(e) => setNameValue(e.target.value)}
+                            onBlur={handleNameBlur}
+                            onKeyDown={handleNameKeyDown}
+                            autoFocus
+                            className="text-ink-700 font-medium text-sm min-w-0 flex-1 px-1.5 py-0.5 border border-amber-300 rounded-md bg-white outline-none focus:shadow-[0_0_0_2px_rgba(245,158,11,0.15)]"
+                        />
+                    ) : (
+                        <span
+                            className={`font-medium text-sm cursor-text truncate max-w-48 transition-colors hover:text-amber-700 ${name ? 'text-ink-700' : 'text-ink-300 italic'}`}
+                            onClick={handleNameClick}
+                        >
+                            {name || 'Add a title'}
+                        </span>
+                    )}
+                    <span className="text-[10px] text-ink-300 font-medium">
+                        {percentage}% scrolled
                     </span>
-                )}
-                <span className="ml-auto flex-shrink-0">
-                    <Button onClick={onJump} icon="play" />
-                    <Button onClick={() => setExpanded(!expanded)} icon={expanded ? 'angle-up' : 'angle-down'} />
+                </div>
+                <span className="ml-auto flex-shrink-0 flex items-center gap-0.5">
+                    <button
+                        onClick={onJump}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/10 cursor-pointer transition-all hover:bg-amber-500/20 hover:scale-110"
+                    >
+                        <FontAwesomeIcon icon={faPlay} className="w-3 h-3 opacity-70 pointer-events-none" />
+                    </button>
+                    <Button onClick={() => setExpanded(!expanded)} icon={expanded ? faAngleUp : faAngleDown} />
                 </span>
             </div>
             {expanded && (
-                <>
-                    <div className="w-full flex items-center justify-between mt-2">
-                        <span className="text-slate-500 text-sm"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
-                        <span>
-                            <Button onClick={onRemove} icon="trash-can" />
+                <div className="mt-2 pt-2 border-t border-cream-300/60 animate-fade-in-up">
+                    <div className="w-full flex items-center justify-between">
+                        <span className="text-ink-400 text-xs"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
+                        <span className="flex items-center gap-0.5">
+                            <Button onClick={onRemove} icon={faTrashCan} />
                             {!displayNote && (
-                                <Button onClick={handleAddNote} icon="note-sticky" />
+                                <Button onClick={handleAddNote} icon={faNoteSticky} />
                             )}
                         </span>
                     </div>
@@ -264,7 +277,7 @@ export const GenericScroll = ({
                             onBlur={onNoteChange}
                         />
                     )}
-                </>
+                </div>
             )}
         </div>
     )
