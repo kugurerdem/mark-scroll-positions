@@ -1,6 +1,8 @@
 import {createRoot} from 'react-dom/client'
 import {useCallback, createContext, useContext} from 'react'
-import {Button, GenericScroll, SortableScrollList, usePageDataState} from './common'
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
+import {faBookmark, faBookBookmark} from '@fortawesome/free-solid-svg-icons'
+import {GenericScroll, SortableScrollList, usePageDataState} from './common'
 
 import type {ScrollDetails, PageData, BootContextValue} from './types'
 
@@ -60,24 +62,46 @@ const App = () => {
     }, [])
 
     return (
-        <>
-            <Button icon="bookmark" text="Mark" onClick={onSave} />
-            <Button
-                icon="book-bookmark"
-                text="All Marks"
-                onClick={() => {
-                    window.open('./manage.html')
-                }}
-            />
+        <div className="animate-fade-in-up">
+            <div className="flex items-center justify-between mb-3">
+                <h1 className="font-display text-lg font-semibold text-ink-900 tracking-tight">
+                    ScrollMark
+                </h1>
+                <span className="text-[10px] font-medium text-amber-600/70 uppercase tracking-widest">
+                    {pageData.scrolls.length} mark{pageData.scrolls.length !== 1 ? 's' : ''}
+                </span>
+            </div>
+            <div className="flex gap-2 mb-3">
+                <button
+                    onClick={onSave}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-amber-500 text-white font-medium text-sm cursor-pointer hover:bg-amber-600 transition-colors shadow-sm shadow-amber-500/20"
+                >
+                    <FontAwesomeIcon icon={faBookmark} className="w-3.5 h-3.5 invert pointer-events-none" />
+                    Mark
+                </button>
+                <button
+                    onClick={() => window.open('./manage.html')}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-cream-300 bg-cream-100 text-ink-700 font-medium text-sm cursor-pointer hover:border-amber-300 hover:bg-amber-50 transition-all"
+                >
+                    <FontAwesomeIcon icon={faBookBookmark} className="w-3.5 h-3.5 opacity-60 pointer-events-none" />
+                    All Marks
+                </button>
+            </div>
 
-            <SortableScrollList
-                children={pageData.scrolls.map((details) => (
-                    <Scroll scrollDetails={details} key={details.uuid} />
-                ))}
-                pageData={pageData}
-                setPageData={setPageData}
-            />
-        </>
+            {pageData.scrolls.length === 0 ? (
+                <div className="text-center py-8 text-ink-300 text-sm italic">
+                    No marks on this page yet
+                </div>
+            ) : (
+                <SortableScrollList
+                    children={pageData.scrolls.map((details) => (
+                        <Scroll scrollDetails={details} key={details.uuid} />
+                    ))}
+                    pageData={pageData}
+                    setPageData={setPageData}
+                />
+            )}
+        </div>
     )
 }
 
