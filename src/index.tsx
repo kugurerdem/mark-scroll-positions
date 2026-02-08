@@ -76,14 +76,14 @@ const App = () => {
                     onClick={onSave}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-amber-500 text-white font-medium text-sm cursor-pointer hover:bg-amber-600 transition-colors shadow-sm shadow-amber-500/20"
                 >
-                    <FontAwesomeIcon icon={faBookmark} className="w-3.5 h-3.5 invert pointer-events-none" />
+                    <FontAwesomeIcon icon={faBookmark} className="w-3.5 h-3.5 text-current pointer-events-none" />
                     Mark
                 </button>
                 <button
                     onClick={() => window.open('./manage.html')}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-cream-300 bg-cream-100 text-ink-700 font-medium text-sm cursor-pointer hover:border-amber-300 hover:bg-amber-50 transition-all"
                 >
-                    <FontAwesomeIcon icon={faBookBookmark} className="w-3.5 h-3.5 opacity-60 pointer-events-none" />
+                    <FontAwesomeIcon icon={faBookBookmark} className="w-3.5 h-3.5 text-current pointer-events-none" />
                     All Marks
                 </button>
             </div>
