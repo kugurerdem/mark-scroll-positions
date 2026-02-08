@@ -12,6 +12,7 @@ import {
 import type {PageDetailsByURL, ScrollDetails} from './types'
 
 const {entries} = Object
+const allOrigins = ['<all_urls>']
 
 const main = async () => {
     const pageDetailsByURL =
@@ -29,6 +30,29 @@ interface AppProps {
 const App = ({pageDetailsByURL}: AppProps) => {
     const [searchText, setSearchText] = useState<string | null>(null)
     const [pagesByURL, setPagesByURL] = useState(pageDetailsByURL)
+    const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
+    const [pendingJump, setPendingJump] = useState<{
+        url: string
+        details: ScrollDetails
+    } | null>(null)
+
+    const handleEnableAutoJump = async () => {
+        const granted = await requestAllSitesPermission()
+        if (!granted) return
+
+        setShowPermissionPrompt(false)
+
+        if (!pendingJump) return
+
+        const {url, details} = pendingJump
+        setPendingJump(null)
+        await jumpToMarkedPosition(url, details)
+    }
+
+    const handleMissingAutoJumpPermission = (url: string, details: ScrollDetails) => {
+        setPendingJump({url, details})
+        setShowPermissionPrompt(true)
+    }
 
     const filteredEntries = entries(pagesByURL).filter(
         ([url, details]) =>
@@ -86,6 +110,39 @@ const App = ({pageDetailsByURL}: AppProps) => {
 
             {/* Content area */}
             <main className="max-w-4xl mx-auto px-8 py-6 animate-fade-in-up">
+                {showPermissionPrompt && (
+                    <div className="fixed inset-0 z-50 bg-transparent flex items-center justify-center px-4">
+                        <div className="w-full max-w-md rounded-2xl border border-cream-300 bg-cream-50 p-5 shadow-[0_20px_48px_-18px_rgba(0,0,0,0.3)]">
+                            <h3 className="font-display text-lg font-semibold text-ink-900 leading-tight">
+                                Enable auto-jump permission
+                            </h3>
+                            <p className="mt-2 text-sm text-ink-500 leading-relaxed">
+                                Auto-jump requires all-sites access. If you want to jump directly to saved scroll
+                                positions, enable this permission. If you prefer not to enable it, you can still open
+                                pages normally by clicking their title or URL.
+                            </p>
+                            <div className="mt-4 flex items-center justify-end gap-2">
+                                <button
+                                    onClick={() => {
+                                        setPendingJump(null)
+                                        setShowPermissionPrompt(false)
+                                    }}
+                                    className="px-3.5 py-2 rounded-lg border border-cream-300 bg-cream-100 text-ink-600 text-sm font-medium transition-colors hover:bg-cream-200"
+                                >
+                                    Hide
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        void handleEnableAutoJump()
+                                    }}
+                                    className="px-3.5 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium transition-colors hover:bg-amber-600"
+                                >
+                                    Enable
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {filteredEntries.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="w-16 h-16 rounded-2xl bg-cream-300/60 flex items-center justify-center mx-auto mb-4">
@@ -101,7 +158,11 @@ const App = ({pageDetailsByURL}: AppProps) => {
                 ) : (
                     <div className="flex flex-col gap-3">
                         {filteredEntries.map(([url]) => (
-                            <Page {...{url, setPagesByURL}} key={url} />
+                            <Page
+                                {...{url, setPagesByURL}}
+                                onMissingPermission={handleMissingAutoJumpPermission}
+                                key={url}
+                            />
                         ))}
                     </div>
                 )}
@@ -113,6 +174,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
 interface PageProps {
     url: string
     setPagesByURL: React.Dispatch<React.SetStateAction<PageDetailsByURL>>
+    onMissingPermission: (url: string, details: ScrollDetails) => void
 }
 
 const relativeDate = (iso: string): string => {
@@ -154,27 +216,24 @@ const waitForTabToFinishLoading = (tabId: number): Promise<void> =>
         chrome.tabs.onUpdated.addListener(onUpdated)
     })
 
-const ensureAllSitesPermission = async (): Promise<boolean> => {
-    const allOrigins = ['<all_urls>']
+const hasAllSitesPermission = async (): Promise<boolean> => {
+    if (!chrome.permissions?.contains) return true
+    return chrome.permissions.contains({origins: allOrigins})
+}
 
+const requestAllSitesPermission = async (): Promise<boolean> => {
     if (!chrome.permissions?.request) return true
 
     try {
         return await chrome.permissions.request({origins: allOrigins})
     } catch {
-        return chrome.permissions.contains({origins: allOrigins})
+        return false
     }
 }
 
-const jumpToMarkedPosition = async (url: string, scrollDetails: ScrollDetails) => {
-    const granted = await ensureAllSitesPermission()
-    if (!granted) {
-        window.alert('All-sites permission is required to jump to saved marks.')
-        return
-    }
-
+const jumpToMarkedPosition = async (url: string, scrollDetails: ScrollDetails): Promise<boolean> => {
     const tab = await chrome.tabs.create({url: 'http://' + url})
-    if (!tab.id) return
+    if (!tab.id) return false
 
     await waitForTabToFinishLoading(tab.id)
 
@@ -184,15 +243,17 @@ const jumpToMarkedPosition = async (url: string, scrollDetails: ScrollDetails) =
             func: jumpToScrollPosition,
             args: [scrollDetails],
         })
+        return true
     } catch {
-        window.alert('Could not inject jump script into this page.')
+        return false
     }
 }
 
-const Page = ({url, setPagesByURL}: PageProps) => {
+const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(url)
 
     const [expand, setExpand] = useState(false)
+    const [jumpError, setJumpError] = useState<string | null>(null)
 
     const handleExpand = () => {
         setExpand(!expand)
@@ -205,6 +266,21 @@ const Page = ({url, setPagesByURL}: PageProps) => {
             const {[url]: _, ...rest} = current
             return rest
         })
+    }
+
+    const handleJump = async (details: ScrollDetails) => {
+        setJumpError(null)
+
+        const hasPermission = await hasAllSitesPermission()
+        if (!hasPermission) {
+            onMissingPermission(url, details)
+            return
+        }
+
+        const didJump = await jumpToMarkedPosition(url, details)
+        if (!didJump) {
+            setJumpError('Could not jump on this page.')
+        }
     }
 
     const lastMarkedDate = pageData.scrolls.length > 0
@@ -259,7 +335,7 @@ const Page = ({url, setPagesByURL}: PageProps) => {
                                 scrollDetails={details}
                                 key={details.uuid}
                                 onJump={() => {
-                                    void jumpToMarkedPosition(url, details)
+                                    void handleJump(details)
                                 }}
                                 patchScroll={patchScroll}
                                 setPageData={setPageData}
@@ -270,6 +346,11 @@ const Page = ({url, setPagesByURL}: PageProps) => {
                         setPageData={setPageData}
                     />
                 </div>
+            )}
+            {jumpError && (
+                <p className="mt-2 text-[11px] text-red-600 font-medium">
+                    {jumpError}
+                </p>
             )}
         </div>
     )
