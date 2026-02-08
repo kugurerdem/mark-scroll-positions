@@ -67,7 +67,7 @@ const App = () => {
                 <h1 className="font-display text-lg font-semibold text-ink-900 tracking-tight">
                     Mark Scroll Positions
                 </h1>
-                <span className="text-[10px] font-medium text-amber-600/70 uppercase tracking-widest">
+                <span className="text-[10px] font-medium text-amber-700 uppercase tracking-widest">
                     {pageData.scrolls.length} mark{pageData.scrolls.length !== 1 ? 's' : ''}
                 </span>
             </div>
