@@ -220,25 +220,27 @@ export const GenericScroll = ({
 
     const [expanded, setExpanded] = useState(false)
     const percentage = calculateScrollPercentage(scrollDetails)
+    const nameInputSize = Math.min(Math.max((nameValue || '').length + 1, 10), 40)
 
     return (
         <div className="bg-cream-100 border border-cream-300 rounded-xl px-3.5 py-2.5 cursor-grab transition-all duration-200 hover:border-amber-300 hover:shadow-[0_2px_12px_-2px_rgba(245,158,11,0.12),0_1px_4px_-1px_rgba(0,0,0,0.05)] hover:-translate-y-px active:cursor-grabbing">
             <div className="flex items-center gap-2.5">
                 <CircularProgress percentage={percentage} />
-                <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex flex-col min-w-0 flex-1 cursor-grab">
                     {editingName ? (
                         <input
                             type="text"
                             value={nameValue}
+                            size={nameInputSize}
                             onChange={(e) => setNameValue(e.target.value)}
                             onBlur={handleNameBlur}
                             onKeyDown={handleNameKeyDown}
                             autoFocus
-                            className="text-ink-700 font-medium text-sm min-w-0 flex-1 px-1.5 py-0.5 border border-amber-300 rounded-md bg-white outline-none focus:shadow-[0_0_0_2px_rgba(245,158,11,0.15)]"
+                            className="text-ink-700 font-medium text-sm min-w-0 max-w-full self-start px-1.5 py-0.5 border border-amber-300 rounded-md bg-white outline-none cursor-text focus:shadow-[0_0_0_2px_rgba(245,158,11,0.15)]"
                         />
                     ) : (
                         <span
-                            className={`font-medium text-sm cursor-text truncate max-w-48 transition-colors hover:text-amber-700 ${name ? 'text-ink-700' : 'text-ink-300 italic'}`}
+                            className={`inline-block w-fit font-medium text-sm cursor-text truncate max-w-48 transition-colors hover:text-amber-700 ${name ? 'text-ink-700' : 'text-ink-300 italic'}`}
                             onClick={handleNameClick}
                         >
                             {name || 'Add a title'}
