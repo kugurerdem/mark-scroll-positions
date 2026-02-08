@@ -1,14 +1,7 @@
 import {useState, useEffect} from 'react'
 import {format} from 'date-fns'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {
-    faArrowDownWideShort,
-    faArrowUpWideShort,
-    faAngleUp,
-    faAngleDown,
-    faTrashCan,
-    faNoteSticky,
-} from '@fortawesome/free-solid-svg-icons'
+import {faPlay, faAngleUp, faAngleDown, faTrashCan, faNoteSticky} from '@fortawesome/free-solid-svg-icons'
 
 import type {
     ScrollDetails,
@@ -228,11 +221,6 @@ export const GenericScroll = ({
     const [expanded, setExpanded] = useState(false)
     const percentage = calculateScrollPercentage(scrollDetails)
     const nameInputSize = Math.min(Math.max((nameValue || '').length + 1, 10), 40)
-    const jumpIcon = percentage > 50 ? faArrowUpWideShort : faArrowDownWideShort
-    const jumpLabel =
-        percentage > 50
-            ? 'Jump up to saved position'
-            : 'Jump down to saved position'
 
     return (
         <div className="bg-cream-100 border border-cream-300 rounded-xl px-3.5 py-2.5 cursor-grab transition-all duration-200 hover:border-amber-300 hover:shadow-[0_2px_12px_-2px_rgba(245,158,11,0.12),0_1px_4px_-1px_rgba(0,0,0,0.05)] hover:-translate-y-px active:cursor-grabbing">
@@ -265,11 +253,9 @@ export const GenericScroll = ({
                 <span className="ml-auto flex-shrink-0 flex items-center gap-0.5">
                     <button
                         onClick={onJump}
-                        title={jumpLabel}
-                        aria-label={jumpLabel}
                         className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/10 text-amber-700 cursor-pointer transition-all hover:bg-amber-500/20 hover:scale-110"
                     >
-                        <FontAwesomeIcon icon={jumpIcon} className="w-3 h-3 text-current pointer-events-none" />
+                        <FontAwesomeIcon icon={faPlay} className="w-3 h-3 text-current pointer-events-none" />
                     </button>
                     <Button onClick={() => setExpanded(!expanded)} icon={expanded ? faAngleUp : faAngleDown} />
                 </span>
