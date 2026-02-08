@@ -65,7 +65,7 @@ const App = () => {
         <div className="animate-fade-in-up">
             <div className="flex items-center justify-between mb-3">
                 <h1 className="font-display text-lg font-semibold text-ink-900 tracking-tight">
-                    ScrollMark
+                    Mark Scroll Positions
                 </h1>
                 <span className="text-[10px] font-medium text-amber-600/70 uppercase tracking-widest">
                     {pageData.scrolls.length} mark{pageData.scrolls.length !== 1 ? 's' : ''}
