@@ -246,7 +246,7 @@ export const GenericScroll = ({
                             {name || 'Add a title'}
                         </span>
                     )}
-                    <span className="text-[10px] text-ink-300 font-medium">
+                    <span className="text-[10px] text-amber-700 font-medium">
                         {percentage}% scrolled
                     </span>
                 </div>
