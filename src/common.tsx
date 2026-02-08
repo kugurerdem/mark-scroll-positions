@@ -68,9 +68,9 @@ export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
         <button
             {...buttonProps}
             onClick={onClick}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-transparent cursor-pointer transition-all hover:bg-amber-100 hover:scale-110"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-transparent text-ink-500 cursor-pointer transition-all hover:bg-amber-100 hover:text-amber-700 hover:scale-110"
         >
-            {icon && <FontAwesomeIcon icon={icon} className="w-3.5 h-3.5 opacity-50 pointer-events-none transition-opacity hover:opacity-100" />}
+            {icon && <FontAwesomeIcon icon={icon} className="w-3.5 h-3.5 text-current pointer-events-none" />}
             {text && <span className="ml-1 text-sm font-medium text-ink-700 pointer-events-none"> {text} </span>}
         </button>
     )
@@ -253,9 +253,9 @@ export const GenericScroll = ({
                 <span className="ml-auto flex-shrink-0 flex items-center gap-0.5">
                     <button
                         onClick={onJump}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/10 cursor-pointer transition-all hover:bg-amber-500/20 hover:scale-110"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/10 text-amber-700 cursor-pointer transition-all hover:bg-amber-500/20 hover:scale-110"
                     >
-                        <FontAwesomeIcon icon={faPlay} className="w-3 h-3 opacity-70 pointer-events-none" />
+                        <FontAwesomeIcon icon={faPlay} className="w-3 h-3 text-current pointer-events-none" />
                     </button>
                     <Button onClick={() => setExpanded(!expanded)} icon={expanded ? faAngleUp : faAngleDown} />
                 </span>
