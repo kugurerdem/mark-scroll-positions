@@ -4,7 +4,6 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faAngleUp, faAngleDown, faTrashCan, faBookBookmark, faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons'
 
 import {
-    TextInput,
     GenericScroll,
     SortableScrollList,
     usePageDataState,
@@ -156,7 +155,7 @@ const Page = ({url, setPagesByURL}: PageProps) => {
             <div className="w-full flex items-center gap-3">
                 {/* Page info */}
                 <div className="flex flex-col min-w-0 flex-1">
-                    <a href={'http://' + url} target="_blank" className="text-ink-900 font-display font-semibold text-[15px] hover:text-amber-700 transition-colors truncate">
+                    <a href={'http://' + url} target="_blank" className="self-start text-ink-900 font-display font-semibold text-[15px] hover:text-amber-700 transition-colors truncate">
                         {pageData.title}
                     </a>
                     <span className="flex items-center gap-2">
