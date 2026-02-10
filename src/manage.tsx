@@ -15,6 +15,30 @@ import type {PageData, PageDetailsByURL, ScrollDetails} from './types'
 const {entries} = Object
 const allOrigins = ['<all_urls>']
 
+type PageEntry = [string, PageData]
+
+const parseTimestamp = (iso: string): number => {
+    const timestamp = new Date(iso).getTime()
+    return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+const latestUpdateTimestamp = ({scrolls}: PageData): number =>
+    scrolls.reduce((latest, scroll) => {
+        const timestamp = parseTimestamp(scroll.dateISO)
+        return timestamp > latest ? timestamp : latest
+    }, 0)
+
+const comparePagesByNewestUpdate = (
+    [leftURL, leftDetails]: PageEntry,
+    [rightURL, rightDetails]: PageEntry
+): number => {
+    const byNewestUpdate =
+        latestUpdateTimestamp(rightDetails) - latestUpdateTimestamp(leftDetails)
+
+    if (byNewestUpdate !== 0) return byNewestUpdate
+    return leftURL.localeCompare(rightURL)
+}
+
 const isPageData = (value: unknown): value is PageData => {
     if (!value || typeof value !== 'object') return false
     return Array.isArray((value as {scrolls?: unknown}).scrolls)
@@ -84,6 +108,8 @@ const App = ({pageDetailsByURL}: AppProps) => {
                     s.name?.includes(searchText)
             )
     )
+
+    const visibleEntries = [...filteredEntries].sort(comparePagesByNewestUpdate)
 
     const totalMarks = entries(pagesByURL).reduce(
         (sum, [, details]) => sum + details.scrolls.length, 0
@@ -176,7 +202,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
-                        {filteredEntries.map(([url]) => (
+                        {visibleEntries.map(([url]) => (
                             <Page
                                 {...{url, setPagesByURL}}
                                 onMissingPermission={handleMissingAutoJumpPermission}
