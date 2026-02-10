@@ -20,6 +20,7 @@ export default defineConfig({
             input: {
                 main: './src/index.html',
                 manage: './src/manage.html',
+                settings: './src/settings.html',
             },
         },
     },

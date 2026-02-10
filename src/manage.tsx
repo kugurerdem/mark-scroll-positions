@@ -8,15 +8,34 @@ import {
     SortableScrollList,
     usePageDataState,
 } from './common'
+import {initializeTheme} from './theme'
 
-import type {PageDetailsByURL, ScrollDetails} from './types'
+import type {PageData, PageDetailsByURL, ScrollDetails} from './types'
 
 const {entries} = Object
 const allOrigins = ['<all_urls>']
 
+const isPageData = (value: unknown): value is PageData => {
+    if (!value || typeof value !== 'object') return false
+    return Array.isArray((value as {scrolls?: unknown}).scrolls)
+}
+
+const extractPageDetailsByURL = (
+    storageData: Record<string, unknown>
+): PageDetailsByURL =>
+    entries(storageData).reduce<PageDetailsByURL>((accumulator, [key, value]) => {
+        if (!isPageData(value)) return accumulator
+
+        accumulator[key] = value
+        return accumulator
+    }, {})
+
 const main = async () => {
-    const pageDetailsByURL =
-        (await chrome.storage.local.get()) as PageDetailsByURL
+    await initializeTheme()
+
+    const pageDetailsByURL = extractPageDetailsByURL(
+        await chrome.storage.local.get()
+    )
 
     createRoot(document.getElementById('app')!).render(
         <App pageDetailsByURL={pageDetailsByURL} />
@@ -73,13 +92,13 @@ const App = ({pageDetailsByURL}: AppProps) => {
     return (
         <div className="min-h-screen bg-cream-200">
             {/* Decorative top bar */}
-            <div className="h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600" />
+            <div className="h-1 bg-gradient-to-r from-accent-300 via-accent-500 to-accent-700" />
 
             {/* Header area */}
             <header className="bg-cream-50 border-b border-cream-300 shadow-[0_1px_8px_-2px_rgba(0,0,0,0.04)]">
                 <div className="max-w-4xl mx-auto px-8 py-6">
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-sm shadow-amber-500/20">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-sm shadow-accent-500/20">
                             <FontAwesomeIcon icon={faBookBookmark} className="w-5 h-5 text-white pointer-events-none" />
                         </div>
                         <div>
@@ -102,7 +121,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                             type="text"
                             placeholder="Search pages, marks, notes..."
                             onChange={(e) => setSearchText(e.target.value || null)}
-                            className="w-full pl-9 pr-4 py-2.5 border border-cream-300 rounded-xl bg-cream-100 font-body text-[13px] text-ink-700 outline-none transition-all focus:border-amber-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(245,158,11,0.08)] placeholder:text-ink-300"
+                            className="w-full pl-9 pr-4 py-2.5 border border-cream-300 rounded-xl bg-cream-100 font-body text-[13px] text-ink-700 outline-none transition-all focus:border-accent-400 focus:bg-cream-50 focus:shadow-[0_0_0_3px_rgba(62,114,183,0.14)] placeholder:text-ink-300"
                         />
                     </div>
                 </div>
@@ -135,7 +154,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                                     onClick={() => {
                                         void handleEnableAutoJump()
                                     }}
-                                    className="px-3.5 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium transition-colors hover:bg-amber-600"
+                                    className="px-3.5 py-2 rounded-lg bg-accent-500 text-white text-sm font-medium transition-colors hover:bg-accent-600"
                                 >
                                     Enable
                                 </button>
@@ -289,15 +308,15 @@ const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
         : null
 
     return (
-        <div className="group bg-cream-50 border border-cream-300 rounded-2xl px-5 py-3.5 transition-all duration-200 hover:border-amber-200 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06),0_1px_6px_-1px_rgba(245,158,11,0.08)]">
+        <div className="group bg-cream-50 border border-cream-300 rounded-2xl px-5 py-3.5 transition-all duration-200 hover:border-accent-200 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06),0_1px_6px_-1px_rgba(62,114,183,0.12)]">
             <div className="w-full flex items-center gap-3">
                 {/* Page info */}
                 <div className="flex flex-col min-w-0 flex-1">
-                    <a href={'http://' + url} target="_blank" className="self-start text-ink-900 font-display font-semibold text-[15px] hover:text-amber-700 transition-colors truncate">
+                    <a href={'http://' + url} target="_blank" className="self-start text-ink-900 font-display font-semibold text-[15px] hover:text-accent-700 transition-colors truncate">
                         {pageData.title}
                     </a>
                     <span className="flex items-center gap-2">
-                        <a href={'http://' + url} target="_blank" className="text-ink-400 text-xs hover:text-amber-600 transition-colors truncate">
+                        <a href={'http://' + url} target="_blank" className="text-ink-400 text-xs hover:text-accent-600 transition-colors truncate">
                             {url}
                         </a>
                         <span className="flex-shrink-0 text-[10px] text-ink-300 font-medium">
@@ -315,7 +334,7 @@ const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                     <button
                         onClick={handleExpand}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-ink-400 cursor-pointer transition-all hover:bg-amber-50 hover:text-amber-700"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-ink-400 cursor-pointer transition-all hover:bg-accent-50 hover:text-accent-700"
                     >
                         <FontAwesomeIcon icon={expand ? faAngleUp : faAngleDown} className="w-3.5 h-3.5 text-current pointer-events-none" />
                     </button>
