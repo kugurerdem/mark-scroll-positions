@@ -3,20 +3,77 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
 @theme {
-  --color-cream-50: #fffdf9;
-  --color-cream-100: #faf7f2;
-  --color-cream-200: #f5efe6;
-  --color-cream-300: #ede4d6;
-  --color-cream-400: #e0d5c3;
+  --color-cream-50: #f8fbfd;
+  --color-cream-100: #f1f6fa;
+  --color-cream-200: #e6eef6;
+  --color-cream-300: #d4e0eb;
+  --color-cream-400: #bfcee0;
 
-  --color-ink-900: #1a1a2e;
-  --color-ink-700: #2d2d44;
-  --color-ink-500: #565c88;
-  --color-ink-400: #7b82b0;
-  --color-ink-300: #a5aaca;
+  --color-ink-900: #16263a;
+  --color-ink-700: #2d4360;
+  --color-ink-500: #587394;
+  --color-ink-400: #7690ae;
+  --color-ink-300: #9db1c7;
+
+  --color-accent-50: #eef6ff;
+  --color-accent-100: #dcecff;
+  --color-accent-200: #bfd9ff;
+  --color-accent-300: #98bfff;
+  --color-accent-400: #6d9ddf;
+  --color-accent-500: #3e72b7;
+  --color-accent-600: #2f5a91;
+  --color-accent-700: #23456f;
 
   --font-display: 'Source Serif 4', Georgia, serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-cream-50: #151c27;
+  --color-cream-100: #1c2533;
+  --color-cream-200: #263346;
+  --color-cream-300: #34475f;
+  --color-cream-400: #48617f;
+
+  --color-ink-900: #e8f0ff;
+  --color-ink-700: #cfdcf4;
+  --color-ink-500: #adbfda;
+  --color-ink-400: #8da3c4;
+  --color-ink-300: #7085a6;
+
+  --color-accent-50: #15263a;
+  --color-accent-100: #1d3350;
+  --color-accent-200: #274468;
+  --color-accent-300: #376291;
+  --color-accent-400: #4f83ba;
+  --color-accent-500: #67a2df;
+  --color-accent-600: #85bced;
+  --color-accent-700: #abd6ff;
+}
+
+html,
+body {
+  margin: 0;
+  background-color: var(--color-cream-50);
+  color: var(--color-ink-900);
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+html:not([data-theme-ready='true']) body {
+  visibility: hidden;
 }
 
 @keyframes fade-in-up {
