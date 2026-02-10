@@ -28,7 +28,8 @@ jobs:
         run: npm run build
 
       - name: Package build output
-        run: zip -r build.zip build
+        working-directory: build
+        run: zip -r ../build.zip .
 
       - name: Read version from package.json
         id: version
