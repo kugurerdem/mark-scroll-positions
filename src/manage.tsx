@@ -213,9 +213,24 @@ const jumpToScrollPosition = ({
     viewportHeight,
     contentHeight,
 }: Pick<ScrollDetails, 'scrollPosition' | 'viewportHeight' | 'contentHeight'>) => {
-    const percentage = scrollPosition / (contentHeight - viewportHeight)
+    const savedScrollableHeight = Math.max(contentHeight - viewportHeight, 0)
+    const percentage =
+        savedScrollableHeight > 0 ? scrollPosition / savedScrollableHeight : 0
+
+    const normalizedPercentage = Math.min(1, Math.max(0, percentage))
+
+    const currentContentHeight = Math.max(
+        document.documentElement?.scrollHeight || 0,
+        document.body?.scrollHeight || 0
+    )
+
+    const currentScrollableHeight = Math.max(
+        currentContentHeight - window.innerHeight,
+        0
+    )
+
     const toJumpPositionY =
-        percentage * (document.body.scrollHeight - window.innerHeight)
+        normalizedPercentage * currentScrollableHeight
 
     window.scrollTo(0, toJumpPositionY)
 }
