@@ -15,6 +15,16 @@ import type {
 
 const {assign} = Object
 
+const isInteractiveTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false
+
+    return Boolean(
+        target.closest(
+            'input, textarea, select, button, a, label, [contenteditable="true"]'
+        )
+    )
+}
+
 export const TextInput = ({
     label,
     value,
@@ -53,6 +63,7 @@ export const TextInput = ({
         onBlur: handleBlur,
         onKeyDown: type == 'input' ? handleKeyDown : undefined,
         className: inputClasses,
+        draggable: false,
     }
 
     return (
@@ -118,6 +129,11 @@ export const SortableScrollList = ({
     const [dragOverId, setDragOverId] = useState<string | null>(null)
 
     const handleDragStart = (e: React.DragEvent, uuid: string) => {
+        if (isInteractiveTarget(e.target)) {
+            e.preventDefault()
+            return
+        }
+
         setDraggedId(uuid)
         e.dataTransfer.effectAllowed = 'move'
     }
@@ -152,6 +168,14 @@ export const SortableScrollList = ({
         setDragOverId(null)
     }
 
+    const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.currentTarget.draggable = !isInteractiveTarget(e.target)
+    }
+
+    const restoreDraggable = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.currentTarget.draggable = true
+    }
+
     return (
         <div className="flex flex-col gap-1.5">
             {pageData.scrolls.map((scroll) => {
@@ -162,6 +186,9 @@ export const SortableScrollList = ({
                     <div
                         key={scroll.uuid}
                         draggable
+                        onPointerDownCapture={handlePointerDownCapture}
+                        onPointerUpCapture={restoreDraggable}
+                        onPointerCancelCapture={restoreDraggable}
                         onDragStart={(e) => handleDragStart(e, scroll.uuid)}
                         onDragOver={(e) => handleDragOver(e, scroll.uuid)}
                         onDragLeave={handleDragLeave}
@@ -235,6 +262,7 @@ export const GenericScroll = ({
                             onChange={(e) => setNameValue(e.target.value)}
                             onBlur={handleNameBlur}
                             onKeyDown={handleNameKeyDown}
+                            draggable={false}
                             autoFocus
                             className="text-ink-700 font-medium text-sm min-w-0 max-w-full self-start px-1.5 py-0.5 border border-accent-300 rounded-md bg-cream-50 outline-none cursor-text focus:shadow-[0_0_0_2px_rgba(62,114,183,0.2)]"
                         />
