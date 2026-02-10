@@ -311,5 +311,13 @@ export const usePageDataState = (absoluteURL: string): UsePageDataStateReturn =>
     return [pageData, customSetPageData, patchScroll]
 }
 
-export const calculateScrollPercentage = (d: ScrollDetails): number =>
-    Math.ceil((100 * (d.scrollPosition + d.viewportHeight)) / d.contentHeight)
+export const calculateScrollPercentage = (d: ScrollDetails): number => {
+    if (d.contentHeight <= 0) return 0
+
+    const rawPercentage =
+        (100 * (d.scrollPosition + d.viewportHeight)) / d.contentHeight
+
+    if (!Number.isFinite(rawPercentage)) return 0
+
+    return Math.min(100, Math.max(0, Math.ceil(rawPercentage)))
+}

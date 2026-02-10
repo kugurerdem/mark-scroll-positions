@@ -172,11 +172,18 @@ const saveScrollDetails = async (): Promise<PageData> => {
 
     const markNumber = pageData.scrolls.length + 1
 
+    const contentHeight = Math.max(
+        document.documentElement?.scrollHeight || 0,
+        document.body?.scrollHeight || 0
+    )
+
+    const maxScrollPosition = Math.max(contentHeight - window.innerHeight, 0)
+    const scrollPosition = Math.min(window.pageYOffset, maxScrollPosition)
+
     const scrollDetails: ScrollDetails = {
-        // NOTE: scrollPosition + viewportHeight = contentHeight
-        scrollPosition: window.pageYOffset,
+        scrollPosition,
         viewportHeight: window.innerHeight,
-        contentHeight: document.body.scrollHeight,
+        contentHeight,
         dateISO: new Date().toISOString(),
         uuid,
         name: `Mark #${markNumber}`,
@@ -201,9 +208,24 @@ const jumpToScrollPosition = ({
     viewportHeight,
     contentHeight,
 }: JumpToScrollPositionArgs) => {
-    const percentage = scrollPosition / (contentHeight - viewportHeight)
+    const savedScrollableHeight = Math.max(contentHeight - viewportHeight, 0)
+    const percentage =
+        savedScrollableHeight > 0 ? scrollPosition / savedScrollableHeight : 0
+
+    const normalizedPercentage = Math.min(1, Math.max(0, percentage))
+
+    const currentContentHeight = Math.max(
+        document.documentElement?.scrollHeight || 0,
+        document.body?.scrollHeight || 0
+    )
+
+    const currentScrollableHeight = Math.max(
+        currentContentHeight - window.innerHeight,
+        0
+    )
+
     const toJumpPositionY =
-        percentage * (document.body.scrollHeight - window.innerHeight)
+        normalizedPercentage * currentScrollableHeight
 
     window.scrollTo(0, toJumpPositionY)
 }
