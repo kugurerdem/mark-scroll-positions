@@ -1,5 +1,5 @@
 import {createRoot} from 'react-dom/client'
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faAngleUp, faAngleDown, faTrashCan, faBookBookmark, faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons'
 
@@ -78,6 +78,46 @@ const App = ({pageDetailsByURL}: AppProps) => {
         url: string
         details: ScrollDetails
     } | null>(null)
+
+    useEffect(() => {
+        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
+            changes,
+            areaName
+        ) => {
+            if (areaName !== 'local') return
+
+            setPagesByURL((current) => {
+                const next = {...current}
+                let hasChanged = false
+
+                for (const [key, {oldValue, newValue}] of entries(changes)) {
+                    const hadPageData = isPageData(oldValue)
+                    const hasPageData = isPageData(newValue)
+
+                    if (!hadPageData && !hasPageData) continue
+
+                    if (!hasPageData) {
+                        if (key in next) {
+                            delete next[key]
+                            hasChanged = true
+                        }
+                        continue
+                    }
+
+                    next[key] = newValue
+                    hasChanged = true
+                }
+
+                return hasChanged ? next : current
+            })
+        }
+
+        chrome.storage.onChanged.addListener(onStorageChange)
+
+        return () => {
+            chrome.storage.onChanged.removeListener(onStorageChange)
+        }
+    }, [])
 
     const handleEnableAutoJump = async () => {
         const granted = await requestAllSitesPermission()
