@@ -33,3 +33,21 @@ npm run start:firefox
 The first command watches for file changes and rebuilds automatically. The
 second command opens Firefox with the extension loaded and reloads it whenever
 the build output changes.
+
+# Release
+
+Use `release-it` to bump versions and create a release commit + tag.
+
+```
+npm run release:patch
+```
+
+Also available:
+
+```
+npm run release:minor
+npm run release:major
+```
+
+The release flow runs `typecheck` and `build`, updates `package.json`, and then
+syncs `public/manifest.json` to the same version.
