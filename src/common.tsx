@@ -330,11 +330,32 @@ export const usePageDataState = (absoluteURL: string): UsePageDataStateReturn =>
     }
 
     useEffect(() => {
-        chrome.storage.local.get(absoluteURL).then((r) => {
-            const p = r[absoluteURL] as PageData | undefined
-            if (p && p.scrolls?.length && p.title) setPageData(p)
+        const applyPageData = (data: PageData | undefined) => {
+            setPageData(data ?? {scrolls: [], title: null})
+        }
+
+        chrome.storage.local.get(absoluteURL).then((result) => {
+            applyPageData(result[absoluteURL] as PageData | undefined)
         })
-    }, [])
+
+        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
+            changes,
+            areaName
+        ) => {
+            if (areaName !== 'local') return
+
+            const changed = changes[absoluteURL]
+            if (!changed) return
+
+            applyPageData(changed.newValue as PageData | undefined)
+        }
+
+        chrome.storage.onChanged.addListener(onStorageChange)
+
+        return () => {
+            chrome.storage.onChanged.removeListener(onStorageChange)
+        }
+    }, [absoluteURL])
 
     return [pageData, customSetPageData, patchScroll]
 }
