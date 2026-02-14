@@ -76,6 +76,23 @@ const App = () => {
             })
     }, [])
 
+    const onOpenAllMarks = useCallback(async () => {
+        const manageURL = chrome.runtime.getURL('src/manage.html')
+        const [existingManageTab] = await chrome.tabs.query({url: manageURL})
+
+        if (existingManageTab?.id) {
+            await chrome.tabs.update(existingManageTab.id, {active: true})
+
+            if (existingManageTab.windowId !== undefined) {
+                await chrome.windows.update(existingManageTab.windowId, {focused: true})
+            }
+
+            return
+        }
+
+        await chrome.tabs.create({url: manageURL})
+    }, [])
+
     return (
         <div className="animate-fade-in-up w-[360px] p-3 bg-cream-50">
             <div className="flex items-center justify-between mb-3">
@@ -105,7 +122,9 @@ const App = () => {
                     Mark
                 </button>
                 <button
-                    onClick={() => window.open('./manage.html')}
+                    onClick={() => {
+                        void onOpenAllMarks()
+                    }}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-cream-300 bg-cream-100 text-ink-700 font-medium text-sm cursor-pointer hover:border-accent-300 hover:bg-accent-50 transition-all"
                 >
                     <FontAwesomeIcon icon={faBookBookmark} className="w-3.5 h-3.5 text-current pointer-events-none" />
