@@ -8,7 +8,10 @@
     "preview": "vite preview",
     "watch": "vite build --watch",
     "start:firefox": "web-ext run --source-dir=./build --target=firefox-desktop",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major"
   },
   "keywords": [],
   "author": "",
@@ -34,9 +37,26 @@
     "eslint-plugin-react": "^7.33.2",
     "postcss": "^8.5.6",
     "process": "^0.11.10",
+    "release-it": "^19.2.4",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.8.3",
     "vite": "^7.0.5",
     "web-ext": "^9.2.0"
+  },
+  "release-it": {
+    "npm": {
+      "publish": false
+    },
+    "github": {
+      "release": false
+    },
+    "hooks": {
+      "before:init": "npm run typecheck && npm run build",
+      "after:bump": "node scripts/sync-manifest-version.mjs"
+    },
+    "git": {
+      "commitMessage": "Release v${version}",
+      "tagName": "v${version}"
+    }
   }
 }
