@@ -3,3 +3,5 @@ build/
 node_modules/
 .aider*
 .env
+.claude/settings.json
+.claude/settings.local.json
