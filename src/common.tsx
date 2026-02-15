@@ -214,6 +214,7 @@ export const GenericScroll = ({
     patchScroll,
 }: GenericScrollProps) => {
     const {name, note, dateISO, uuid} = scrollDetails
+    const hasNote = note.trim().length > 0
 
     const [displayNote, setDisplayNote] = useState(Boolean(note))
     const [editingName, setEditingName] = useState(false)
@@ -274,8 +275,16 @@ export const GenericScroll = ({
                             {name || 'Add a title'}
                         </span>
                     )}
-                    <span className="text-[10px] text-accent-700 font-medium">
-                        {percentage}% scrolled
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium">
+                        <span className="text-accent-700">{percentage}% scrolled</span>
+                        {!expanded && hasNote && (
+                            <FontAwesomeIcon
+                                icon={faNoteSticky}
+                                className="w-2.5 h-2.5 text-ink-400"
+                                title="This mark has a note"
+                                aria-label="This mark has a note"
+                            />
+                        )}
                     </span>
                 </div>
                 <span className="ml-auto flex-shrink-0 flex items-center gap-0.5">
