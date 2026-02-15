@@ -18,6 +18,8 @@ export interface PageData {
   title: string | null;
 }
 
+export type ScrollInsertPosition = 'top' | 'bottom';
+
 export type PageDetailsByURL = Record<string, PageData>;
 
 // React context type for the popup

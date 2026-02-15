@@ -12,6 +12,22 @@ import {
 import {ThemeToggle} from './theme-toggle'
 
 import type {ThemePreference} from './theme'
+import type {ScrollInsertPosition} from './types'
+
+const MARK_INSERT_POSITION_KEY = 'markInsertPosition'
+
+const isScrollInsertPosition = (value: unknown): value is ScrollInsertPosition =>
+    value === 'top' || value === 'bottom'
+
+const getScrollInsertPosition = async (): Promise<ScrollInsertPosition> => {
+    const result = await chrome.storage.local.get(MARK_INSERT_POSITION_KEY)
+    const value = result[MARK_INSERT_POSITION_KEY]
+    return isScrollInsertPosition(value) ? value : 'bottom'
+}
+
+const setScrollInsertPosition = async (position: ScrollInsertPosition): Promise<void> => {
+    await chrome.storage.local.set({[MARK_INSERT_POSITION_KEY]: position})
+}
 
 const main = async () => {
     await initializeTheme()
@@ -22,6 +38,8 @@ const main = async () => {
 const App = () => {
     const [themePreference, setThemePreference] =
         useState<ThemePreference>('system')
+    const [markInsertPosition, setMarkInsertPosition] =
+        useState<ScrollInsertPosition>('bottom')
 
     useEffect(() => {
         let isMounted = true
@@ -31,20 +49,47 @@ const App = () => {
             setThemePreference(preference)
         })
 
+        void getScrollInsertPosition().then((position) => {
+            if (!isMounted) return
+            setMarkInsertPosition(position)
+        })
+
         const unsubscribe = subscribeThemePreference((preference) => {
             if (!isMounted) return
             setThemePreference(preference)
         })
 
+        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
+            changes,
+            areaName
+        ) => {
+            if (areaName !== 'local') return
+            const positionChange = changes[MARK_INSERT_POSITION_KEY]
+            if (!positionChange) return
+
+            const nextValue = positionChange.newValue
+            if (!isScrollInsertPosition(nextValue)) return
+
+            setMarkInsertPosition(nextValue)
+        }
+
+        chrome.storage.onChanged.addListener(onStorageChange)
+
         return () => {
             isMounted = false
             unsubscribe()
+            chrome.storage.onChanged.removeListener(onStorageChange)
         }
     }, [])
 
     const onThemeChange = useCallback((preference: ThemePreference) => {
         setThemePreference(preference)
         void setStoredThemePreference(preference)
+    }, [])
+
+    const onMarkInsertPositionChange = useCallback((position: ScrollInsertPosition) => {
+        setMarkInsertPosition(position)
+        void setScrollInsertPosition(position)
     }, [])
 
     return (
@@ -74,6 +119,41 @@ const App = () => {
                     <ThemeToggle value={themePreference} onChange={onThemeChange} />
                     <p className="mt-3 text-xs text-ink-400 leading-relaxed">
                         System follows your browser appearance preferences.
+                    </p>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-cream-300 bg-cream-100 p-4">
+                    <p className="text-[11px] uppercase tracking-wider font-medium text-ink-400 mb-2">
+                        New Mark Placement
+                    </p>
+                    <div className="inline-flex w-full rounded-lg border border-cream-300 bg-cream-50 p-1">
+                        <button
+                            onClick={() => {
+                                onMarkInsertPositionChange('top')
+                            }}
+                            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                                markInsertPosition === 'top'
+                                    ? 'bg-accent-500 text-white'
+                                    : 'text-ink-600 hover:bg-cream-100'
+                            }`}
+                        >
+                            Top
+                        </button>
+                        <button
+                            onClick={() => {
+                                onMarkInsertPositionChange('bottom')
+                            }}
+                            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                                markInsertPosition === 'bottom'
+                                    ? 'bg-accent-500 text-white'
+                                    : 'text-ink-600 hover:bg-cream-100'
+                            }`}
+                        >
+                            Bottom
+                        </button>
+                    </div>
+                    <p className="mt-3 text-xs text-ink-400 leading-relaxed">
+                        Choose whether new marks are added first or last in the list.
                     </p>
                 </div>
             </section>
