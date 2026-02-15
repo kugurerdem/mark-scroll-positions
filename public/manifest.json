@@ -7,6 +7,9 @@
         "default_popup": "src/index.html"
     },
     "background": {
+        "scripts": [
+            "background.js"
+        ],
         "service_worker": "background.js"
     },
     "options_ui": {
