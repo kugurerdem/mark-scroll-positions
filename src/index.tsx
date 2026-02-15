@@ -9,7 +9,12 @@ import {
 import {GenericScroll, SortableScrollList, usePageDataState} from './common'
 import {initializeTheme} from './theme'
 
-import type {ScrollDetails, PageData, BootContextValue} from './types'
+import type {
+    ScrollDetails,
+    PageData,
+    BootContextValue,
+    ScrollInsertPosition,
+} from './types'
 
 const Context = createContext<BootContextValue | null>(null)
 
@@ -179,6 +184,10 @@ const Scroll = ({scrollDetails}: ScrollProps) => {
 // thus they cannot use things in outer scope of their function
 
 const saveScrollDetails = async (): Promise<PageData> => {
+    const markInsertPositionKey = 'markInsertPosition'
+    const isScrollInsertPosition = (value: unknown): value is ScrollInsertPosition =>
+        value === 'top' || value === 'bottom'
+
     const absoluteURL = window.location.hostname.concat(window.location.pathname)
 
     const uuid = crypto.randomUUID()
@@ -190,6 +199,11 @@ const saveScrollDetails = async (): Promise<PageData> => {
         }
 
     const markNumber = pageData.scrolls.length + 1
+
+    const settings = await chrome.storage.local.get(markInsertPositionKey)
+    const markInsertPosition = isScrollInsertPosition(settings[markInsertPositionKey])
+        ? settings[markInsertPositionKey]
+        : 'bottom'
 
     const contentHeight = Math.max(
         document.documentElement?.scrollHeight || 0,
@@ -209,7 +223,11 @@ const saveScrollDetails = async (): Promise<PageData> => {
         note: '',
     }
 
-    pageData.scrolls.push(scrollDetails)
+    if (markInsertPosition === 'top') {
+        pageData.scrolls.unshift(scrollDetails)
+    } else {
+        pageData.scrolls.push(scrollDetails)
+    }
 
     await chrome.storage.local.set({[absoluteURL]: pageData})
 
