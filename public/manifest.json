@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Mark Scroll Positions",
     "description": "Mark your scroll locations for later.",
-    "version": "1.3.2",
+    "version": "1.4.0",
     "action": {
         "default_popup": "src/index.html"
     },
