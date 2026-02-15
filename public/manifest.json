@@ -6,6 +6,12 @@
     "action": {
         "default_popup": "src/index.html"
     },
+    "background": {
+        "service_worker": "background.js",
+        "scripts": [
+            "background.js"
+        ]
+    },
     "options_ui": {
         "page": "src/settings.html",
         "open_in_tab": true
