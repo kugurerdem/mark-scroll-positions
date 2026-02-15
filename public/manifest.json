@@ -7,10 +7,7 @@
         "default_popup": "src/index.html"
     },
     "background": {
-        "service_worker": "background.js",
-        "scripts": [
-            "background.js"
-        ]
+        "service_worker": "background.js"
     },
     "options_ui": {
         "page": "src/settings.html",
@@ -19,8 +16,7 @@
     "permissions": [
         "storage",
         "activeTab",
-        "scripting",
-        "permissions"
+        "scripting"
     ],
     "optional_host_permissions": [
         "<all_urls>"
