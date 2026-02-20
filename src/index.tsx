@@ -75,10 +75,6 @@ const App = () => {
                 target: {tabId: activeTab.id!},
                 func: saveScrollDetails,
             })
-            .then((injectionResults) => {
-                const {result} = injectionResults[0]
-                setPageData(result as PageData)
-            })
     }, [])
 
     const onOpenAllMarks = useCallback(async () => {
