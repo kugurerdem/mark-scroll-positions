@@ -20,6 +20,13 @@ export interface PageData {
 
 export type ScrollInsertPosition = 'top' | 'bottom';
 
+export type QueryIdentityMode = 'ignore' | 'include';
+
+export interface QueryIdentitySettings {
+  globalMode: QueryIdentityMode;
+  perHostMode: Record<string, QueryIdentityMode>;
+}
+
 export type PageDetailsByURL = Record<string, PageData>;
 
 // React context type for the popup

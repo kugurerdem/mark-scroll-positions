@@ -1,5 +1,5 @@
 import {createRoot} from 'react-dom/client'
-import {useCallback, createContext, useContext} from 'react'
+import {useCallback, useEffect, useState, createContext, useContext} from 'react'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {
     faBookmark,
@@ -8,12 +8,22 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import {GenericScroll, SortableScrollList, usePageDataState} from './common'
 import {initializeTheme} from './theme'
+import {
+    QUERY_IDENTITY_SETTINGS_KEY,
+    getQueryIdentitySettings,
+    normalizeQueryIdentitySettings,
+    resolveQueryIdentityMode,
+    resolvePageStorageKey,
+    setQueryIdentitySettings as setStoredQueryIdentitySettings,
+} from './url-identity'
 
 import type {
     ScrollDetails,
     PageData,
     BootContextValue,
     ScrollInsertPosition,
+    QueryIdentitySettings,
+    QueryIdentityMode,
 } from './types'
 
 const Context = createContext<BootContextValue | null>(null)
@@ -34,31 +44,106 @@ const main = async () => {
         lastFocusedWindow: true,
     })
 
+    const queryIdentitySettings = await getQueryIdentitySettings()
+
     createRoot(document.getElementById('app')!).render(
-        <Boot activeTab={activeTab} />
+        <Boot
+            activeTab={activeTab}
+            initialQueryIdentitySettings={queryIdentitySettings}
+        />
     )
 }
 
 interface BootProps {
     activeTab: chrome.tabs.Tab
+    initialQueryIdentitySettings: QueryIdentitySettings
 }
 
-const Boot = ({activeTab}: BootProps) => {
-    const {hostname, pathname} = new URL(activeTab.url!)
-    const absoluteURL = hostname.concat(pathname)
+const Boot = ({activeTab, initialQueryIdentitySettings}: BootProps) => {
+    const [queryIdentitySettings, setQueryIdentitySettings] =
+        useState<QueryIdentitySettings>(initialQueryIdentitySettings)
+
+    const activeURL = new URL(activeTab.url!)
+    const hasQueryParameters = activeURL.search.length > 0
+    const hostname = activeURL.hostname
+    const queryIdentityMode = resolveQueryIdentityMode(
+        queryIdentitySettings,
+        hostname
+    )
+    const absoluteURL = resolvePageStorageKey(activeURL, queryIdentitySettings)
 
     const [pageData, setPageData, patchScroll] = usePageDataState(absoluteURL)
+
+    useEffect(() => {
+        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
+            changes,
+            areaName
+        ) => {
+            if (areaName !== 'local') return
+
+            const settingsChange = changes[QUERY_IDENTITY_SETTINGS_KEY]
+            if (!settingsChange) return
+
+            setQueryIdentitySettings(
+                normalizeQueryIdentitySettings(settingsChange.newValue)
+            )
+        }
+
+        chrome.storage.onChanged.addListener(onStorageChange)
+
+        return () => {
+            chrome.storage.onChanged.removeListener(onStorageChange)
+        }
+    }, [])
+
+    const onQueryIdentityModeChange = useCallback(
+        (nextMode: QueryIdentityMode) => {
+            setQueryIdentitySettings((current) => {
+                const nextSettings: QueryIdentitySettings = {
+                    ...current,
+                    perHostMode: {
+                        ...current.perHostMode,
+                        [hostname]: nextMode,
+                    },
+                }
+
+                void setStoredQueryIdentitySettings(nextSettings)
+
+                return nextSettings
+            })
+        },
+        [hostname]
+    )
 
     return (
         <Context.Provider
             value={{activeTab, absoluteURL, pageData, setPageData, patchScroll}}
-            children={<App />}
+            children={(
+                <App
+                    hasQueryParameters={hasQueryParameters}
+                    hostname={hostname}
+                    queryIdentityMode={queryIdentityMode}
+                    onQueryIdentityModeChange={onQueryIdentityModeChange}
+                />
+            )}
         />
     )
 }
 
-const App = () => {
-    const {activeTab, pageData, setPageData} = useBootContext()
+interface AppProps {
+    hasQueryParameters: boolean
+    hostname: string
+    queryIdentityMode: QueryIdentityMode
+    onQueryIdentityModeChange: (mode: QueryIdentityMode) => void
+}
+
+const App = ({
+    hasQueryParameters,
+    hostname,
+    queryIdentityMode,
+    onQueryIdentityModeChange,
+}: AppProps) => {
+    const {activeTab, absoluteURL, pageData, setPageData} = useBootContext()
 
     const onOpenSettings = useCallback(() => {
         if (chrome.runtime.openOptionsPage) {
@@ -74,8 +159,9 @@ const App = () => {
             .executeScript({
                 target: {tabId: activeTab.id!},
                 func: saveScrollDetails,
+                args: [absoluteURL],
             })
-    }, [])
+    }, [activeTab.id, absoluteURL, setPageData])
 
     const onOpenAllMarks = useCallback(async () => {
         const manageURL = chrome.runtime.getURL('src/manage.html')
@@ -133,6 +219,24 @@ const App = () => {
                 </button>
             </div>
 
+            {hasQueryParameters && (
+                <label className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-500 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={queryIdentityMode === 'include'}
+                        onChange={(e) => {
+                            onQueryIdentityModeChange(
+                                e.target.checked ? 'include' : 'ignore'
+                            )
+                        }}
+                        className="w-3.5 h-3.5 accent-accent-600 rounded border-cream-400"
+                    />
+                    <span>
+                        Use query params for <span className="text-ink-700">{hostname}</span>
+                    </span>
+                </label>
+            )}
+
             {pageData.scrolls.length === 0 ? (
                 <div className="text-center py-8 text-ink-300 text-sm italic">
                     No marks on this page yet
@@ -179,12 +283,10 @@ const Scroll = ({scrollDetails}: ScrollProps) => {
 // NOTE: Below are content scripts, they run on a seperate environment and
 // thus they cannot use things in outer scope of their function
 
-const saveScrollDetails = async (): Promise<PageData> => {
+const saveScrollDetails = async (absoluteURL: string): Promise<PageData> => {
     const markInsertPositionKey = 'markInsertPosition'
     const isScrollInsertPosition = (value: unknown): value is ScrollInsertPosition =>
         value === 'top' || value === 'bottom'
-
-    const absoluteURL = window.location.hostname.concat(window.location.pathname)
 
     const uuid = crypto.randomUUID()
 
