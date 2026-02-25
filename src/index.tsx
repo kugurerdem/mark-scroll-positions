@@ -4,6 +4,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {
     faBookmark,
     faBookBookmark,
+    faCircleInfo,
     faGear,
 } from '@fortawesome/free-solid-svg-icons'
 import {GenericScroll, SortableScrollList, usePageDataState} from './common'
@@ -220,21 +221,31 @@ const App = ({
             </div>
 
             {hasQueryParameters && (
-                <label className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-500 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={queryIdentityMode === 'include'}
-                        onChange={(e) => {
-                            onQueryIdentityModeChange(
-                                e.target.checked ? 'include' : 'ignore'
-                            )
-                        }}
-                        className="w-3.5 h-3.5 accent-accent-600 rounded border-cream-400"
-                    />
-                    <span>
-                        Use query params for <span className="text-ink-700">{hostname}</span>
-                    </span>
-                </label>
+                <div className="mb-3 flex items-center gap-1.5">
+                    <label className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-500 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={queryIdentityMode === 'include'}
+                            onChange={(e) => {
+                                onQueryIdentityModeChange(
+                                    e.target.checked ? 'include' : 'ignore'
+                                )
+                            }}
+                            className="w-3.5 h-3.5 accent-accent-600 rounded border-cream-400"
+                        />
+                        <span>
+                            Use query params for <span className="text-ink-700">{hostname}</span>
+                        </span>
+                    </label>
+                    <button
+                        onClick={onOpenSettings}
+                        className="inline-flex items-center justify-center w-4 h-4 text-ink-300 cursor-pointer transition-colors hover:text-accent-600"
+                        title="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
+                        aria-label="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
+                    >
+                        <FontAwesomeIcon icon={faCircleInfo} className="w-3 h-3 text-current pointer-events-none" />
+                    </button>
+                </div>
             )}
 
             {pageData.scrolls.length === 0 ? (
