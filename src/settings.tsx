@@ -310,7 +310,7 @@ const App = () => {
                         URL Matching
                     </p>
                     <p className="text-xs text-ink-400 leading-relaxed">
-                        Marks are grouped by URL. Choose whether query parameters are part of page identity.
+                        Query parameters are the <span className="text-ink-600">?key=value</span> parts at the end of a URL. When you enable this setting, pages with different query parameters (e.g. <span className="text-ink-600">?page=1</span> vs <span className="text-ink-600">?page=2</span>) are treated as separate pages, each with their own marks. Only enable this if the content of your pages changes based on query parameters.
                     </p>
                     <label className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-600 cursor-pointer">
                         <input
