@@ -29,8 +29,5 @@
     },
     "plugins": [
       "react"
-    ],
-    "globals": {
-      "process": true
-    }
+    ]
 }

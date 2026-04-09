@@ -1,13 +1,7 @@
 import {createRoot} from 'react-dom/client'
 import {useCallback, useEffect, useState, createContext, useContext} from 'react'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {
-    faBookmark,
-    faBookBookmark,
-    faCircleInfo,
-    faGear,
-} from '@fortawesome/free-solid-svg-icons'
 import {GenericScroll, SortableScrollList, usePageDataState} from './common'
+import {Icon} from './icons'
 import {initializeTheme} from './theme'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
@@ -197,7 +191,7 @@ const App = ({
                         title="Open settings"
                         aria-label="Open settings"
                     >
-                        <FontAwesomeIcon icon={faGear} className="icon icon--xs" />
+                        <Icon icon="gear" className="icon icon--xs" />
                     </button>
                 </span>
             </div>
@@ -206,7 +200,7 @@ const App = ({
                     onClick={onSave}
                     className="button button--primary button--fill"
                 >
-                    <FontAwesomeIcon icon={faBookmark} className="icon icon--sm" />
+                    <Icon icon="bookmark" className="icon icon--sm" />
                     Mark
                 </button>
                 <button
@@ -215,7 +209,7 @@ const App = ({
                     }}
                     className="button button--secondary button--fill"
                 >
-                    <FontAwesomeIcon icon={faBookBookmark} className="icon icon--sm" />
+                    <Icon icon="bookBookmark" className="icon icon--sm" />
                     All Marks
                 </button>
             </div>
@@ -243,7 +237,7 @@ const App = ({
                         title="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
                         aria-label="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
                     >
-                        <FontAwesomeIcon icon={faCircleInfo} className="icon icon--xs" />
+                        <Icon icon="circleInfo" className="icon icon--xs" />
                     </button>
                 </div>
             )}

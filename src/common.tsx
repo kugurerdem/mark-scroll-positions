@@ -1,6 +1,5 @@
 import {useState, useEffect, useRef} from 'react'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlay, faAngleUp, faAngleDown, faTrashCan, faNoteSticky} from '@fortawesome/free-solid-svg-icons'
+import {Icon} from './icons'
 
 import type {
     ScrollDetails,
@@ -86,7 +85,7 @@ export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
             onClick={onClick}
             className="icon-button"
         >
-            {icon && <FontAwesomeIcon icon={icon} className="icon icon--sm" />}
+            {icon && <Icon icon={icon} className="icon icon--sm" />}
             {text && <span className="icon-button__text"> {text} </span>}
         </button>
     )
@@ -431,8 +430,8 @@ export const GenericScroll = ({
                     <span className="scroll-card__meta">
                         <span className="scroll-card__percentage">{percentage}% scrolled</span>
                         {!expanded && hasNote && (
-                            <FontAwesomeIcon
-                                icon={faNoteSticky}
+                            <Icon
+                                icon="noteSticky"
                                 className="icon icon--tiny scroll-card__note-indicator"
                                 title="This mark has a note"
                                 aria-label="This mark has a note"
@@ -445,9 +444,9 @@ export const GenericScroll = ({
                         onClick={onJump}
                         className="icon-button icon-button--accent"
                     >
-                        <FontAwesomeIcon icon={faPlay} className="icon icon--xs" />
+                        <Icon icon="play" className="icon icon--xs" />
                     </button>
-                    <Button onClick={() => setExpanded(!expanded)} icon={expanded ? faAngleUp : faAngleDown} />
+                    <Button onClick={() => setExpanded(!expanded)} icon={expanded ? 'angleUp' : 'angleDown'} />
                 </span>
             </div>
             {expanded && (
@@ -455,9 +454,9 @@ export const GenericScroll = ({
                     <div className="scroll-card__details-header">
                         <span className="scroll-card__date"> {dateFormatter.format(new Date(dateISO))} </span>
                         <span className="scroll-card__detail-actions">
-                            <Button onClick={onRemove} icon={faTrashCan} />
+                            <Button onClick={onRemove} icon="trashCan" />
                             {!displayNote && (
-                                <Button onClick={handleAddNote} icon={faNoteSticky} />
+                                <Button onClick={handleAddNote} icon="noteSticky" />
                             )}
                         </span>
                     </div>

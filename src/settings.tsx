@@ -1,7 +1,5 @@
 import {createRoot} from 'react-dom/client'
 import {useCallback, useEffect, useState} from 'react'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPalette, faTrashCan} from '@fortawesome/free-solid-svg-icons'
 
 import {
     getThemePreference,
@@ -9,6 +7,7 @@ import {
     setThemePreference as setStoredThemePreference,
     subscribeThemePreference,
 } from './theme'
+import {Icon} from './icons'
 import {ThemeToggle} from './theme-toggle'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
@@ -245,10 +244,7 @@ const App = () => {
             <section className="settings-card animate-fade-in-up">
                 <header className="settings-card__header">
                     <span className="settings-card__icon-wrap">
-                        <FontAwesomeIcon
-                            icon={faPalette}
-                            className="icon icon--sm icon--inverse"
-                        />
+                        <Icon icon="palette" className="icon icon--sm icon--inverse" />
                     </span>
                     <div>
                         <h1 className="settings-card__title">
@@ -411,7 +407,7 @@ const App = () => {
                                             aria-label={`Remove site rule for ${hostname}`}
                                             className="icon-button settings-rule-item__remove"
                                         >
-                                            <FontAwesomeIcon icon={faTrashCan} className="icon icon--xs" />
+                                            <Icon icon="trashCan" className="icon icon--xs" />
                                         </button>
                                     </div>
                                 ))}
