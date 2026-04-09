@@ -5,11 +5,6 @@
   "scripts": {
     "start:firefox": "web-ext run --source-dir=. --target=firefox-desktop",
     "typecheck": "tsc --noEmit",
-    "preversion": "npm run typecheck",
-    "version": "node scripts/sync-manifest-version.mjs && git add package.json package-lock.json manifest.json",
-    "release:patch": "npm version patch -m \"Release v%s\"",
-    "release:minor": "npm version minor -m \"Release v%s\"",
-    "release:major": "npm version major -m \"Release v%s\""
   },
   "keywords": [],
   "author": "",
