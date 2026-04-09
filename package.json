@@ -42,7 +42,12 @@
     "tailwindcss": "^4.1.18",
     "typescript": "^5.8.3",
     "vite": "^7.1.11",
-    "web-ext": "^9.2.0"
+    "web-ext": "^10.1.0"
+  },
+  "overrides": {
+    "release-it": {
+      "undici": "6.24.0"
+    }
   },
   "release-it": {
     "npm": {
