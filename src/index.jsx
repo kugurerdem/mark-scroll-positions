@@ -2,6 +2,7 @@
 
 import {createRoot} from 'react-dom/client'
 import {useCallback, useEffect, useState, createContext, useContext} from 'react'
+import {getAppRoot} from './app-root.js'
 import {GenericScroll, SortableScrollList, usePageDataState} from './common.jsx'
 import {Icon} from './icons.jsx'
 import {initializeTheme} from './theme.js'
@@ -45,13 +46,8 @@ const main = async () => {
     }
 
     const queryIdentitySettings = await getQueryIdentitySettings()
-    const rootElement = document.getElementById('app')
 
-    if (!(rootElement instanceof HTMLElement)) {
-        throw new Error('Missing app root element')
-    }
-
-    createRoot(rootElement).render(
+    createRoot(getAppRoot()).render(
         <Boot
             activeTab={activeTab}
             initialQueryIdentitySettings={queryIdentitySettings}

@@ -2,6 +2,7 @@
 
 import {createRoot} from 'react-dom/client'
 import {useState, useEffect} from 'react'
+import {getAppRoot} from './app-root.js'
 
 import {
     GenericScroll,
@@ -67,13 +68,8 @@ const main = async () => {
     const pageDetailsByURL = extractPageDetailsByURL(
         /** @type {Record<string, unknown>} */ (await chrome.storage.local.get())
     )
-    const rootElement = document.getElementById('app')
 
-    if (!(rootElement instanceof HTMLElement)) {
-        throw new Error('Missing app root element')
-    }
-
-    createRoot(rootElement).render(
+    createRoot(getAppRoot()).render(
         <App pageDetailsByURL={pageDetailsByURL} />
     )
 }
