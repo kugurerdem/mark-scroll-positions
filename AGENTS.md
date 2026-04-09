@@ -1,14 +1,14 @@
 # AGENTS.md
 
 ## 1. Purpose
-This repository contains a browser extension that saves page scroll positions so users can return to marked reading points later. The popup (`src/index.tsx`) creates marks for the active tab and opens the manage page. The manage page (`src/manage.tsx`) lists marks across pages, supports jump/navigation actions, and edits metadata. Agents may modify source code, styles, tests, and documentation needed to complete requested tasks. Agents must not make unrelated product, release, security, or infrastructure changes unless explicitly requested by a human.
+This repository contains a browser extension that saves page scroll positions so users can return to marked reading points later. The popup (`src/index.jsx`) creates marks for the active tab and opens the manage page. The manage page (`src/manage.jsx`) lists marks across pages, supports jump/navigation actions, and edits metadata. Agents may modify source code, styles, tests, and documentation needed to complete requested tasks. Agents must not make unrelated product, release, security, or infrastructure changes unless explicitly requested by a human.
 
 ## 2. Repository Map
-- `src/index.tsx`, `src/manage.tsx`, `src/settings.tsx`
+- `src/index.jsx`, `src/manage.jsx`, `src/settings.jsx`
   - Contains extension UI entrypoints (popup, manage page, settings).
   - Modifiable: **Yes**.
   - Constraints: preserve current user-visible flows unless task explicitly changes them.
-- `src/common.tsx`, `src/types.ts`, `src/theme.ts`, `src/theme-toggle.tsx`, `src/styles.css`
+- `src/common.jsx`, `src/types.js`, `src/theme.js`, `src/theme-toggle.jsx`, `src/styles.css`
   - Shared UI components, state hooks, type definitions, and styling.
   - Modifiable: **Yes**.
   - Constraints: keep shared abstractions backward-compatible for existing callers.

@@ -1,3 +1,5 @@
+// @ts-check
+
 import {createRoot} from 'react-dom/client'
 import {useState, useEffect} from 'react'
 
@@ -5,32 +7,38 @@ import {
     GenericScroll,
     SortableScrollList,
     usePageDataState,
-} from './common'
-import {Icon} from './icons'
-import {initializeTheme} from './theme'
+} from './common.jsx'
+import {Icon} from './icons.jsx'
+import {initializeTheme} from './theme.js'
 
-import type {PageData, PageDetailsByURL, ScrollDetails} from './types'
+/** @typedef {import('./types.js').PageData} PageData */
+/** @typedef {import('./types.js').PageDetailsByURL} PageDetailsByURL */
+/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
+
+/** @typedef {[string, PageData]} PageEntry */
+/** @typedef {import('react').Dispatch<import('react').SetStateAction<PageDetailsByURL>>} SetPagesByURL */
 
 const {entries} = Object
 const allOrigins = ['<all_urls>']
 
-type PageEntry = [string, PageData]
-
-const parseTimestamp = (iso: string): number => {
+/** @param {string} iso @returns {number} */
+const parseTimestamp = (iso) => {
     const timestamp = new Date(iso).getTime()
     return Number.isFinite(timestamp) ? timestamp : 0
 }
 
-const latestUpdateTimestamp = ({scrolls}: PageData): number =>
+/** @param {PageData} pageData @returns {number} */
+const latestUpdateTimestamp = ({scrolls}) =>
     scrolls.reduce((latest, scroll) => {
         const timestamp = parseTimestamp(scroll.dateISO)
         return timestamp > latest ? timestamp : latest
     }, 0)
 
+/** @param {PageEntry} left @param {PageEntry} right @returns {number} */
 const comparePagesByNewestUpdate = (
-    [leftURL, leftDetails]: PageEntry,
-    [rightURL, rightDetails]: PageEntry
-): number => {
+    [leftURL, leftDetails],
+    [rightURL, rightDetails]
+) => {
     const byNewestUpdate =
         latestUpdateTimestamp(rightDetails) - latestUpdateTimestamp(leftDetails)
 
@@ -38,51 +46,50 @@ const comparePagesByNewestUpdate = (
     return leftURL.localeCompare(rightURL)
 }
 
-const isPageData = (value: unknown): value is PageData => {
+/** @param {unknown} value @returns {value is PageData} */
+const isPageData = (value) => {
     if (!value || typeof value !== 'object') return false
-    return Array.isArray((value as {scrolls?: unknown}).scrolls)
+    return Array.isArray(/** @type {{scrolls?: unknown}} */ (value).scrolls)
 }
 
-const extractPageDetailsByURL = (
-    storageData: Record<string, unknown>
-): PageDetailsByURL =>
-    entries(storageData).reduce<PageDetailsByURL>((accumulator, [key, value]) => {
+/** @param {Record<string, unknown>} storageData @returns {PageDetailsByURL} */
+const extractPageDetailsByURL = (storageData) =>
+    entries(storageData).reduce((accumulator, [key, value]) => {
         if (!isPageData(value)) return accumulator
 
         accumulator[key] = value
         return accumulator
-    }, {})
+    }, /** @type {PageDetailsByURL} */ ({}))
 
 const main = async () => {
     await initializeTheme()
 
     const pageDetailsByURL = extractPageDetailsByURL(
-        await chrome.storage.local.get()
+        /** @type {Record<string, unknown>} */ (await chrome.storage.local.get())
     )
+    const rootElement = document.getElementById('app')
 
-    createRoot(document.getElementById('app')!).render(
+    if (!(rootElement instanceof HTMLElement)) {
+        throw new Error('Missing app root element')
+    }
+
+    createRoot(rootElement).render(
         <App pageDetailsByURL={pageDetailsByURL} />
     )
 }
 
-interface AppProps {
-    pageDetailsByURL: PageDetailsByURL
-}
-
-const App = ({pageDetailsByURL}: AppProps) => {
-    const [searchText, setSearchText] = useState<string | null>(null)
+/** @param {{pageDetailsByURL: PageDetailsByURL}} props */
+const App = ({pageDetailsByURL}) => {
+    const [searchText, setSearchText] = useState(/** @type {string | null} */ (null))
     const [pagesByURL, setPagesByURL] = useState(pageDetailsByURL)
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
-    const [pendingJump, setPendingJump] = useState<{
-        url: string
-        details: ScrollDetails
-    } | null>(null)
+    const [pendingJump, setPendingJump] = useState(
+        /** @type {{url: string, details: ScrollDetails} | null} */ (null)
+    )
 
     useEffect(() => {
-        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
-            changes,
-            areaName
-        ) => {
+        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
+        const onStorageChange = (changes, areaName) => {
             if (areaName !== 'local') return
 
             setPagesByURL((current) => {
@@ -131,7 +138,8 @@ const App = ({pageDetailsByURL}: AppProps) => {
         await jumpToMarkedPosition(url, details)
     }
 
-    const handleMissingAutoJumpPermission = (url: string, details: ScrollDetails) => {
+    /** @param {string} url @param {ScrollDetails} details */
+    const handleMissingAutoJumpPermission = (url, details) => {
         setPendingJump({url, details})
         setShowPermissionPrompt(true)
     }
@@ -248,13 +256,8 @@ const App = ({pageDetailsByURL}: AppProps) => {
     )
 }
 
-interface PageProps {
-    url: string
-    setPagesByURL: React.Dispatch<React.SetStateAction<PageDetailsByURL>>
-    onMissingPermission: (url: string, details: ScrollDetails) => void
-}
-
-const relativeDate = (iso: string): string => {
+/** @param {string} iso @returns {string} */
+const relativeDate = (iso) => {
     const diff = Date.now() - new Date(iso).getTime()
     const mins = Math.floor(diff / 60000)
     if (mins < 60) return `${mins}m ago`
@@ -266,11 +269,18 @@ const relativeDate = (iso: string): string => {
     return `${months}mo ago`
 }
 
+/**
+ * @param {{
+ *   scrollPosition: number,
+ *   viewportHeight: number,
+ *   contentHeight: number,
+ * }} args
+ */
 const jumpToScrollPosition = ({
     scrollPosition,
     viewportHeight,
     contentHeight,
-}: Pick<ScrollDetails, 'scrollPosition' | 'viewportHeight' | 'contentHeight'>) => {
+}) => {
     const savedScrollableHeight = Math.max(contentHeight - viewportHeight, 0)
     const percentage =
         savedScrollableHeight > 0 ? scrollPosition / savedScrollableHeight : 0
@@ -293,12 +303,11 @@ const jumpToScrollPosition = ({
     window.scrollTo(0, toJumpPositionY)
 }
 
-const waitForTabToFinishLoading = (tabId: number): Promise<void> =>
+/** @param {number} tabId @returns {Promise<void>} */
+const waitForTabToFinishLoading = (tabId) =>
     new Promise((resolve) => {
-        const onUpdated = (
-            updatedTabId: number,
-            changeInfo: {status?: string}
-        ) => {
+        /** @param {number} updatedTabId @param {{status?: string}} changeInfo */
+        const onUpdated = (updatedTabId, changeInfo) => {
             if (updatedTabId === tabId && changeInfo.status === 'complete') {
                 chrome.tabs.onUpdated.removeListener(onUpdated)
                 resolve()
@@ -308,12 +317,14 @@ const waitForTabToFinishLoading = (tabId: number): Promise<void> =>
         chrome.tabs.onUpdated.addListener(onUpdated)
     })
 
-const hasAllSitesPermission = async (): Promise<boolean> => {
+/** @returns {Promise<boolean>} */
+const hasAllSitesPermission = async () => {
     if (!chrome.permissions?.contains) return true
     return chrome.permissions.contains({origins: allOrigins})
 }
 
-const requestAllSitesPermission = async (): Promise<boolean> => {
+/** @returns {Promise<boolean>} */
+const requestAllSitesPermission = async () => {
     if (!chrome.permissions?.request) return true
 
     try {
@@ -323,7 +334,8 @@ const requestAllSitesPermission = async (): Promise<boolean> => {
     }
 }
 
-const jumpToMarkedPosition = async (url: string, scrollDetails: ScrollDetails): Promise<boolean> => {
+/** @param {string} url @param {ScrollDetails} scrollDetails @returns {Promise<boolean>} */
+const jumpToMarkedPosition = async (url, scrollDetails) => {
     const tab = await chrome.tabs.create({url: 'http://' + url})
     if (!tab.id) return false
 
@@ -341,26 +353,35 @@ const jumpToMarkedPosition = async (url: string, scrollDetails: ScrollDetails): 
     }
 }
 
-const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
+/**
+ * @typedef {object} PageProps
+ * @property {string} url
+ * @property {SetPagesByURL} setPagesByURL
+ * @property {(url: string, details: ScrollDetails) => void} onMissingPermission
+ */
+
+/** @param {PageProps} props */
+const Page = ({url, setPagesByURL, onMissingPermission}) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(url)
 
     const [expand, setExpand] = useState(false)
-    const [jumpError, setJumpError] = useState<string | null>(null)
+    const [jumpError, setJumpError] = useState(/** @type {string | null} */ (null))
 
     const handleExpand = () => {
         setExpand(!expand)
     }
 
     const handlePageDelete = () => {
-        chrome.storage.local.remove([url])
+        void chrome.storage.local.remove([url])
         setPagesByURL((current) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const {[url]: _, ...rest} = current
-            return rest
+            const next = {...current}
+            delete next[url]
+            return next
         })
     }
 
-    const handleJump = async (details: ScrollDetails) => {
+    /** @param {ScrollDetails} details */
+    const handleJump = async (details) => {
         setJumpError(null)
 
         const hasPermission = await hasAllSitesPermission()
@@ -445,4 +466,4 @@ const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
     )
 }
 
-main()
+void main()

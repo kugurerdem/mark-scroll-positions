@@ -1,22 +1,27 @@
-import type {ThemePreference} from './theme'
+// @ts-check
 
-interface ThemeToggleProps {
-    value: ThemePreference
-    onChange: (preference: ThemePreference) => void
-    compact?: boolean
-}
+/** @typedef {import('./theme.js').ThemePreference} ThemePreference */
 
-const options: Array<{value: ThemePreference; label: string}> = [
+/**
+ * @typedef {object} ThemeToggleProps
+ * @property {ThemePreference} value
+ * @property {(preference: ThemePreference) => void} onChange
+ * @property {boolean} [compact]
+ */
+
+/** @type {{value: ThemePreference, label: string}[]} */
+const options = [
     {value: 'system', label: 'System'},
     {value: 'light', label: 'Light'},
     {value: 'dark', label: 'Dark'},
 ]
 
+/** @param {ThemeToggleProps} props */
 export const ThemeToggle = ({
     value,
     onChange,
     compact = false,
-}: ThemeToggleProps) => {
+}) => {
     const containerClassName = compact
         ? 'theme-toggle theme-toggle--compact'
         : 'theme-toggle'

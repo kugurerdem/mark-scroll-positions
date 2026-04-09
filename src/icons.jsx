@@ -1,24 +1,29 @@
-import type {SVGProps} from 'react'
+// @ts-check
 
-export type IconName =
-    | 'angleDown'
-    | 'angleUp'
-    | 'bookBookmark'
-    | 'bookmark'
-    | 'circleInfo'
-    | 'gear'
-    | 'magnifyingGlass'
-    | 'noteSticky'
-    | 'palette'
-    | 'play'
-    | 'trashCan'
+/**
+ * @typedef {
+ *   | 'angleDown'
+ *   | 'angleUp'
+ *   | 'bookBookmark'
+ *   | 'bookmark'
+ *   | 'circleInfo'
+ *   | 'gear'
+ *   | 'magnifyingGlass'
+ *   | 'noteSticky'
+ *   | 'palette'
+ *   | 'play'
+ *   | 'trashCan'
+ * } IconName
+ */
 
-interface IconDefinition {
-    viewBox: string
-    path: string
-}
+/**
+ * @typedef {object} IconDefinition
+ * @property {string} viewBox
+ * @property {string} path
+ */
 
-const iconDefinitions: Record<IconName, IconDefinition> = {
+/** @type {Record<IconName, IconDefinition>} */
+const iconDefinitions = {
     angleDown: {
         // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/angle-down.svg
         viewBox: '0 0 384 512',
@@ -76,12 +81,10 @@ const iconDefinitions: Record<IconName, IconDefinition> = {
     },
 }
 
-export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'children' | 'viewBox'> {
-    icon: IconName
-    title?: string
-}
+/** @typedef {import('react').SVGProps<SVGSVGElement> & {icon: IconName, title?: string}} IconProps */
 
-export const Icon = ({icon, title, ...props}: IconProps) => {
+/** @param {IconProps} props */
+export const Icon = ({icon, title, ...props}) => {
     const definition = iconDefinitions[icon]
     const labelled = props['aria-label'] !== undefined || title !== undefined
 

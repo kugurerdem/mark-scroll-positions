@@ -1,8 +1,10 @@
+// @ts-check
+
 import {createRoot} from 'react-dom/client'
 import {useCallback, useEffect, useState, createContext, useContext} from 'react'
-import {GenericScroll, SortableScrollList, usePageDataState} from './common'
-import {Icon} from './icons'
-import {initializeTheme} from './theme'
+import {GenericScroll, SortableScrollList, usePageDataState} from './common.jsx'
+import {Icon} from './icons.jsx'
+import {initializeTheme} from './theme.js'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
     getQueryIdentitySettings,
@@ -10,20 +12,19 @@ import {
     resolveQueryIdentityMode,
     resolvePageStorageKey,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
-} from './url-identity'
+} from './url-identity.js'
 
-import type {
-    ScrollDetails,
-    PageData,
-    BootContextValue,
-    ScrollInsertPosition,
-    QueryIdentitySettings,
-    QueryIdentityMode,
-} from './types'
+/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./types.js').PageData} PageData */
+/** @typedef {import('./types.js').BootContextValue} BootContextValue */
+/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
 
-const Context = createContext<BootContextValue | null>(null)
+const Context = createContext(/** @type {BootContextValue | null} */ (null))
 
-const useBootContext = (): BootContextValue => {
+/** @returns {BootContextValue} */
+const useBootContext = () => {
     const context = useContext(Context)
     if (!context) {
         throw new Error('useBootContext must be used within a Boot provider')
@@ -39,9 +40,18 @@ const main = async () => {
         lastFocusedWindow: true,
     })
 
-    const queryIdentitySettings = await getQueryIdentitySettings()
+    if (!activeTab?.url) {
+        throw new Error('Could not resolve the active tab URL')
+    }
 
-    createRoot(document.getElementById('app')!).render(
+    const queryIdentitySettings = await getQueryIdentitySettings()
+    const rootElement = document.getElementById('app')
+
+    if (!(rootElement instanceof HTMLElement)) {
+        throw new Error('Missing app root element')
+    }
+
+    createRoot(rootElement).render(
         <Boot
             activeTab={activeTab}
             initialQueryIdentitySettings={queryIdentitySettings}
@@ -49,16 +59,22 @@ const main = async () => {
     )
 }
 
-interface BootProps {
-    activeTab: chrome.tabs.Tab
-    initialQueryIdentitySettings: QueryIdentitySettings
-}
+/**
+ * @typedef {object} BootProps
+ * @property {chrome.tabs.Tab} activeTab
+ * @property {QueryIdentitySettings} initialQueryIdentitySettings
+ */
 
-const Boot = ({activeTab, initialQueryIdentitySettings}: BootProps) => {
+/** @param {BootProps} props */
+const Boot = ({activeTab, initialQueryIdentitySettings}) => {
     const [queryIdentitySettings, setQueryIdentitySettings] =
-        useState<QueryIdentitySettings>(initialQueryIdentitySettings)
+        useState(initialQueryIdentitySettings)
 
-    const activeURL = new URL(activeTab.url!)
+    if (!activeTab.url) {
+        throw new Error('Could not resolve the active tab URL')
+    }
+
+    const activeURL = new URL(activeTab.url)
     const hasQueryParameters = activeURL.search.length > 0
     const hostname = activeURL.hostname
     const queryIdentityMode = resolveQueryIdentityMode(
@@ -70,10 +86,8 @@ const Boot = ({activeTab, initialQueryIdentitySettings}: BootProps) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(absoluteURL)
 
     useEffect(() => {
-        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
-            changes,
-            areaName
-        ) => {
+        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
+        const onStorageChange = (changes, areaName) => {
             if (areaName !== 'local') return
 
             const settingsChange = changes[QUERY_IDENTITY_SETTINGS_KEY]
@@ -92,9 +106,10 @@ const Boot = ({activeTab, initialQueryIdentitySettings}: BootProps) => {
     }, [])
 
     const onQueryIdentityModeChange = useCallback(
-        (nextMode: QueryIdentityMode) => {
+        /** @param {QueryIdentityMode} nextMode */
+        (nextMode) => {
             setQueryIdentitySettings((current) => {
-                const nextSettings: QueryIdentitySettings = {
+                const nextSettings = {
                     ...current,
                     perHostMode: {
                         ...current.perHostMode,
@@ -113,31 +128,32 @@ const Boot = ({activeTab, initialQueryIdentitySettings}: BootProps) => {
     return (
         <Context.Provider
             value={{activeTab, absoluteURL, pageData, setPageData, patchScroll}}
-            children={(
-                <App
-                    hasQueryParameters={hasQueryParameters}
-                    hostname={hostname}
-                    queryIdentityMode={queryIdentityMode}
-                    onQueryIdentityModeChange={onQueryIdentityModeChange}
-                />
-            )}
-        />
+        >
+            <App
+                hasQueryParameters={hasQueryParameters}
+                hostname={hostname}
+                queryIdentityMode={queryIdentityMode}
+                onQueryIdentityModeChange={onQueryIdentityModeChange}
+            />
+        </Context.Provider>
     )
 }
 
-interface AppProps {
-    hasQueryParameters: boolean
-    hostname: string
-    queryIdentityMode: QueryIdentityMode
-    onQueryIdentityModeChange: (mode: QueryIdentityMode) => void
-}
+/**
+ * @typedef {object} AppProps
+ * @property {boolean} hasQueryParameters
+ * @property {string} hostname
+ * @property {QueryIdentityMode} queryIdentityMode
+ * @property {(mode: QueryIdentityMode) => void} onQueryIdentityModeChange
+ */
 
+/** @param {AppProps} props */
 const App = ({
     hasQueryParameters,
     hostname,
     queryIdentityMode,
     onQueryIdentityModeChange,
-}: AppProps) => {
+}) => {
     const {activeTab, absoluteURL, pageData, setPageData} = useBootContext()
 
     const onOpenSettings = useCallback(() => {
@@ -150,13 +166,14 @@ const App = ({
     }, [])
 
     const onSave = useCallback(() => {
-        chrome.scripting
-            .executeScript({
-                target: {tabId: activeTab.id!},
-                func: saveScrollDetails,
-                args: [absoluteURL],
-            })
-    }, [activeTab.id, absoluteURL, setPageData])
+        if (!activeTab.id) return
+
+        void chrome.scripting.executeScript({
+            target: {tabId: activeTab.id},
+            func: saveScrollDetails,
+            args: [absoluteURL],
+        })
+    }, [activeTab.id, absoluteURL])
 
     const onOpenAllMarks = useCallback(async () => {
         const manageURL = chrome.runtime.getURL('src/manage.html')
@@ -260,16 +277,15 @@ const App = ({
     )
 }
 
-interface ScrollProps {
-    scrollDetails: ScrollDetails
-}
-
-const Scroll = ({scrollDetails}: ScrollProps) => {
+/** @param {{scrollDetails: ScrollDetails}} props */
+const Scroll = ({scrollDetails}) => {
     const {activeTab, pageData, setPageData, patchScroll} = useBootContext()
 
     const onJump = () => {
-        chrome.scripting.executeScript({
-            target: {tabId: activeTab.id!},
+        if (!activeTab.id) return
+
+        void chrome.scripting.executeScript({
+            target: {tabId: activeTab.id},
             func: jumpToScrollPosition,
             args: [scrollDetails],
         })
@@ -289,20 +305,27 @@ const Scroll = ({scrollDetails}: ScrollProps) => {
 // NOTE: Below are content scripts, they run on a seperate environment and
 // thus they cannot use things in outer scope of their function
 
-const saveScrollDetails = async (absoluteURL: string): Promise<PageData> => {
+/** @param {string} absoluteURL @returns {Promise<PageData>} */
+const saveScrollDetails = async (absoluteURL) => {
     const markInsertPositionKey = 'markInsertPosition'
-    const isScrollInsertPosition = (value: unknown): value is ScrollInsertPosition =>
+
+    /** @param {unknown} value @returns {value is ScrollInsertPosition} */
+    const isScrollInsertPosition = (value) =>
         value === 'top' || value === 'bottom'
-    const isPageData = (value: unknown): value is PageData =>
-        !!value &&
+
+    /** @param {unknown} value @returns {value is PageData} */
+    const isPageData = (value) =>
+        Boolean(value) &&
         typeof value === 'object' &&
-        Array.isArray((value as {scrolls?: unknown}).scrolls)
+        Array.isArray(/** @type {{scrolls?: unknown}} */ (value).scrolls)
 
     const uuid = crypto.randomUUID()
     const storedPageData = (await chrome.storage.local.get(absoluteURL))[absoluteURL]
 
-    const pageData: PageData =
-        isPageData(storedPageData) ? storedPageData : {
+    /** @type {PageData} */
+    const pageData = isPageData(storedPageData)
+        ? storedPageData
+        : {
             scrolls: [],
             title: document.title,
         }
@@ -322,7 +345,8 @@ const saveScrollDetails = async (absoluteURL: string): Promise<PageData> => {
     const maxScrollPosition = Math.max(contentHeight - window.innerHeight, 0)
     const scrollPosition = Math.min(window.pageYOffset, maxScrollPosition)
 
-    const scrollDetails: ScrollDetails = {
+    /** @type {ScrollDetails} */
+    const scrollDetails = {
         scrollPosition,
         viewportHeight: window.innerHeight,
         contentHeight,
@@ -343,17 +367,19 @@ const saveScrollDetails = async (absoluteURL: string): Promise<PageData> => {
     return pageData
 }
 
-interface JumpToScrollPositionArgs {
-    scrollPosition: number
-    viewportHeight: number
-    contentHeight: number
-}
+/**
+ * @typedef {object} JumpToScrollPositionArgs
+ * @property {number} scrollPosition
+ * @property {number} viewportHeight
+ * @property {number} contentHeight
+ */
 
+/** @param {JumpToScrollPositionArgs} args */
 const jumpToScrollPosition = ({
     scrollPosition,
     viewportHeight,
     contentHeight,
-}: JumpToScrollPositionArgs) => {
+}) => {
     const savedScrollableHeight = Math.max(contentHeight - viewportHeight, 0)
     const percentage =
         savedScrollableHeight > 0 ? scrollPosition / savedScrollableHeight : 0
@@ -376,4 +402,4 @@ const jumpToScrollPosition = ({
     window.scrollTo(0, toJumpPositionY)
 }
 
-main()
+void main()
