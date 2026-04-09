@@ -19,20 +19,20 @@ npm install
 Then, build the extension:
 
 ```
-npm run build
+npm run typecheck
 ```
 
-For development with hot-reloading in Firefox, run these commands in two
-separate terminals:
+After that, you can load the repository directory itself as an unpacked
+extension in Chrome or Firefox. No build step is required.
+
+For development with auto-reload in Firefox, run:
 
 ```
-npm run watch
 npm run start:firefox
 ```
 
-The first command watches for file changes and rebuilds automatically. The
-second command opens Firefox with the extension loaded and reloads it whenever
-the build output changes.
+This loads the repository directly and reloads the extension when source files
+change.
 
 # Release
 
@@ -50,8 +50,9 @@ npm run release:minor
 npm run release:major
 ```
 
-The local release flow runs `typecheck` and `build`, updates `package.json` and
-`package-lock.json`, then syncs `public/manifest.json` to the same version
-before the version commit and `vX.Y.Z` tag are created.
+The local release flow runs `typecheck`, updates `package.json` and
+`package-lock.json`, then syncs `manifest.json` to the same version before the
+version commit and `vX.Y.Z` tag are created.
 
-GitHub Actions creates the GitHub release when that tag is pushed.
+GitHub Actions creates the GitHub release when that tag is pushed by packaging
+the source extension directly.

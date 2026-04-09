@@ -36,7 +36,7 @@ jobs:
 
           tag_version="${GITHUB_REF_NAME#v}"
           package_version=$(node -p "require('./package.json').version")
-          manifest_version=$(node -p "require('./public/manifest.json').version")
+          manifest_version=$(node -p "require('./manifest.json').version")
 
           if [ "$tag_version" != "$package_version" ]; then
             echo "Tag version ($tag_version) does not match package.json ($package_version)."
@@ -44,7 +44,7 @@ jobs:
           fi
 
           if [ "$package_version" != "$manifest_version" ]; then
-            echo "package.json ($package_version) does not match public/manifest.json ($manifest_version)."
+            echo "package.json ($package_version) does not match manifest.json ($manifest_version)."
             exit 1
           fi
 
@@ -53,12 +53,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build extension
-        run: npm run build
+      - name: Typecheck source
+        run: npm run typecheck
 
-      - name: Package build output
-        working-directory: build
-        run: zip -r ../build.zip .
+      - name: Package extension source
+        run: zip -r build.zip manifest.json public src vendor
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

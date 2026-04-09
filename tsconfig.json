@@ -12,7 +12,6 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
 
     "strict": true,
     "noUnusedLocals": true,
@@ -21,5 +20,6 @@
 
     "types": ["chrome"]
   },
-  "include": ["src"]
+  "include": ["src", "public/background.js"],
+  "exclude": ["vendor", "build"]
 }

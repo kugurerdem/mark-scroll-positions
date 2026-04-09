@@ -1,5 +1,7 @@
 // @ts-check
 
+import {html} from './ui.js'
+
 /** @typedef {import('./theme.js').ThemePreference} ThemePreference */
 
 /**
@@ -26,29 +28,29 @@ export const ThemeToggle = ({
         ? 'theme-toggle theme-toggle--compact'
         : 'theme-toggle'
 
-    return (
+    return html`
         <div
-            className={containerClassName}
+            class=${containerClassName}
             role="group"
             aria-label="Theme preference"
         >
-            {options.map((option) => {
+            ${options.map((option) => {
                 const isSelected = value === option.value
 
-                return (
+                return html`
                     <button
-                        key={option.value}
+                        key=${option.value}
                         type="button"
-                        onClick={() => onChange(option.value)}
-                        aria-pressed={isSelected}
-                        className={`theme-toggle__button${
+                        onClick=${() => onChange(option.value)}
+                        aria-pressed=${isSelected}
+                        class=${`theme-toggle__button${
                             compact ? ' theme-toggle__button--compact' : ''
                         }${isSelected ? ' theme-toggle__button--selected' : ''}`}
                     >
-                        {option.label}
+                        ${option.label}
                     </button>
-                )
+                `
             })}
         </div>
-    )
+    `
 }
