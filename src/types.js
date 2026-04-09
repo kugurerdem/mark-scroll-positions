@@ -1,8 +1,6 @@
 // @ts-check
 
-/** @typedef {import('react').ButtonHTMLAttributes<HTMLButtonElement>} ButtonHTMLAttributes */
-/** @typedef {import('react').ReactElement} ReactElement */
-/** @typedef {import('./icons.jsx').IconName} IconName */
+/** @typedef {import('./icons.js').IconName} IconName */
 
 /**
  * @typedef {object} ScrollDetails
@@ -34,6 +32,7 @@
 
 /** @typedef {(data: PageData) => void} SetPageData */
 /** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => void} PatchScroll */
+/** @typedef {(scrollDetails: ScrollDetails) => unknown} RenderScroll */
 
 /**
  * @typedef {object} BootContextValue
@@ -55,8 +54,8 @@
 
 /**
  * @typedef {object} SortableScrollListProps
- * @property {ReactElement[]} children
  * @property {PageData} pageData
+ * @property {RenderScroll} renderItem
  * @property {SetPageData} setPageData
  * @property {'native' | 'pointer'} [interactionMode]
  */
@@ -72,10 +71,10 @@
  */
 
 /**
- * @typedef {ButtonHTMLAttributes & {
- *   text?: string,
- *   icon?: IconName,
- * }} ButtonProps
+ * @typedef {object} ButtonProps
+ * @property {string} [text]
+ * @property {IconName} [icon]
+ * @property {() => void} [onClick]
  */
 
 /**

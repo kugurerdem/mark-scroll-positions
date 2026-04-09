@@ -1,26 +1,25 @@
 // @ts-check
 
-import {createRoot} from 'react-dom/client'
-import {useCallback, useEffect, useState, createContext, useContext} from 'react'
+import {createContext, html, render, useCallback, useContext, useEffect, useState} from './ui.js'
 import {getAppRoot} from './app-root.js'
-import {GenericScroll, SortableScrollList, usePageDataState} from './common.jsx'
-import {Icon} from './icons.jsx'
+import {GenericScroll, SortableScrollList, usePageDataState} from './common.js'
+import {Icon} from './icons.js'
 import {initializeTheme} from './theme.js'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
     getQueryIdentitySettings,
     normalizeQueryIdentitySettings,
-    resolveQueryIdentityMode,
     resolvePageStorageKey,
+    resolveQueryIdentityMode,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
 } from './url-identity.js'
 
-/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./types.js').PageData} PageData */
 /** @typedef {import('./types.js').BootContextValue} BootContextValue */
-/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
-/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('./types.js').PageData} PageData */
 /** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
 
 const Context = createContext(/** @type {BootContextValue | null} */ (null))
 
@@ -30,6 +29,7 @@ const useBootContext = () => {
     if (!context) {
         throw new Error('useBootContext must be used within a Boot provider')
     }
+
     return context
 }
 
@@ -47,11 +47,14 @@ const main = async () => {
 
     const queryIdentitySettings = await getQueryIdentitySettings()
 
-    createRoot(getAppRoot()).render(
-        <Boot
-            activeTab={activeTab}
-            initialQueryIdentitySettings={queryIdentitySettings}
-        />
+    render(
+        html`
+            <${Boot}
+                activeTab=${activeTab}
+                initialQueryIdentitySettings=${queryIdentitySettings}
+            />
+        `,
+        getAppRoot()
     )
 }
 
@@ -78,7 +81,6 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
         hostname
     )
     const absoluteURL = resolvePageStorageKey(activeURL, queryIdentitySettings)
-
     const [pageData, setPageData, patchScroll] = usePageDataState(absoluteURL)
 
     useEffect(() => {
@@ -104,7 +106,8 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
     const onQueryIdentityModeChange = useCallback(
         /** @param {QueryIdentityMode} nextMode */
         (nextMode) => {
-            setQueryIdentitySettings((current) => {
+            /** @param {QueryIdentitySettings} current */
+            const updateSettings = (current) => {
                 const nextSettings = {
                     ...current,
                     perHostMode: {
@@ -114,25 +117,26 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
                 }
 
                 void setStoredQueryIdentitySettings(nextSettings)
-
                 return nextSettings
-            })
+            }
+
+            setQueryIdentitySettings(updateSettings)
         },
         [hostname]
     )
 
-    return (
-        <Context.Provider
-            value={{activeTab, absoluteURL, pageData, setPageData, patchScroll}}
+    return html`
+        <${Context.Provider}
+            value=${{activeTab, absoluteURL, pageData, setPageData, patchScroll}}
         >
-            <App
-                hasQueryParameters={hasQueryParameters}
-                hostname={hostname}
-                queryIdentityMode={queryIdentityMode}
-                onQueryIdentityModeChange={onQueryIdentityModeChange}
+            <${App}
+                hasQueryParameters=${hasQueryParameters}
+                hostname=${hostname}
+                queryIdentityMode=${queryIdentityMode}
+                onQueryIdentityModeChange=${onQueryIdentityModeChange}
             />
-        </Context.Provider>
-    )
+        </${Context.Provider}>
+    `
 }
 
 /**
@@ -151,6 +155,7 @@ const App = ({
     onQueryIdentityModeChange,
 }) => {
     const {activeTab, absoluteURL, pageData, setPageData} = useBootContext()
+    const markCountLabel = `${pageData.scrolls.length} mark${pageData.scrolls.length !== 1 ? 's' : ''}`
 
     const onOpenSettings = useCallback(() => {
         if (chrome.runtime.openOptionsPage) {
@@ -188,89 +193,94 @@ const App = ({
         await chrome.tabs.create({url: manageURL})
     }, [])
 
-    return (
-        <div className="popup animate-fade-in-up">
-            <div className="popup__header">
-                <h1 className="popup__title">
-                    Mark Scroll Positions
-                </h1>
-                <span className="popup__header-actions">
-                    <span className="popup__count">
-                        {pageData.scrolls.length} mark{pageData.scrolls.length !== 1 ? 's' : ''}
-                    </span>
+    /** @param {ScrollDetails} details */
+    const renderScrollItem = (details) => html`<${Scroll} scrollDetails=${details} />`
+
+    return html`
+        <div class="popup animate-fade-in-up">
+            <div class="popup__header">
+                <h1 class="popup__title">Mark Scroll Positions</h1>
+                <span class="popup__header-actions">
+                    <span class="popup__count">${markCountLabel}</span>
                     <button
-                        onClick={onOpenSettings}
-                        className="icon-button icon-button--compact popup__settings-button"
+                        type="button"
+                        onClick=${onOpenSettings}
+                        class="icon-button icon-button--compact popup__settings-button"
                         title="Open settings"
                         aria-label="Open settings"
                     >
-                        <Icon icon="gear" className="icon icon--xs" />
+                        <${Icon} icon="gear" className="icon icon--xs" />
                     </button>
                 </span>
             </div>
-            <div className="popup__actions">
+            <div class="popup__actions">
                 <button
-                    onClick={onSave}
-                    className="button button--primary button--fill"
+                    type="button"
+                    onClick=${onSave}
+                    class="button button--primary button--fill"
                 >
-                    <Icon icon="bookmark" className="icon icon--sm" />
+                    <${Icon} icon="bookmark" className="icon icon--sm" />
                     Mark
                 </button>
                 <button
-                    onClick={() => {
+                    type="button"
+                    onClick=${() => {
                         void onOpenAllMarks()
                     }}
-                    className="button button--secondary button--fill"
+                    class="button button--secondary button--fill"
                 >
-                    <Icon icon="bookBookmark" className="icon icon--sm" />
+                    <${Icon} icon="bookBookmark" className="icon icon--sm" />
                     All Marks
                 </button>
             </div>
 
-            {hasQueryParameters && (
-                <div className="popup__query-row">
-                    <label className="popup__query-label">
-                        <input
-                            type="checkbox"
-                            checked={queryIdentityMode === 'include'}
-                            onChange={(e) => {
-                                onQueryIdentityModeChange(
-                                    e.target.checked ? 'include' : 'ignore'
-                                )
-                            }}
-                            className="checkbox checkbox--small"
-                        />
-                        <span>
-                            Use query params for <span className="popup__query-host">{hostname}</span>
-                        </span>
-                    </label>
-                    <button
-                        onClick={onOpenSettings}
-                        className="popup__info-button"
-                        title="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
-                        aria-label="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
-                    >
-                        <Icon icon="circleInfo" className="icon icon--xs" />
-                    </button>
-                </div>
-            )}
+            ${hasQueryParameters
+                ? html`
+                    <div class="popup__query-row">
+                        <label class="popup__query-label">
+                            <input
+                                type="checkbox"
+                                checked=${queryIdentityMode === 'include'}
+                                onChange=${
+                                    /** @param {Event & {currentTarget: HTMLInputElement}} event */
+                                    (event) => {
+                                        onQueryIdentityModeChange(
+                                            event.currentTarget.checked ? 'include' : 'ignore'
+                                        )
+                                    }
+                                }
+                                class="checkbox checkbox--small"
+                            />
+                            <span>
+                                Use query params for
+                                <span class="popup__query-host">${hostname}</span>
+                            </span>
+                        </label>
+                        <button
+                            type="button"
+                            onClick=${onOpenSettings}
+                            class="popup__info-button"
+                            title="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
+                            aria-label="Query parameters are the ?key=value parts of a URL. When enabled, pages with different query parameters are treated as separate pages for marks. Enable this if the content of your page depends on query parameters, otherwise leave it as is."
+                        >
+                            <${Icon} icon="circleInfo" className="icon icon--xs" />
+                        </button>
+                    </div>
+                `
+                : null}
 
-            {pageData.scrolls.length === 0 ? (
-                <div className="popup__empty-state">
-                    No marks on this page yet
-                </div>
-            ) : (
-                <SortableScrollList
-                    children={pageData.scrolls.map((details) => (
-                        <Scroll scrollDetails={details} key={details.uuid} />
-                    ))}
-                    pageData={pageData}
-                    setPageData={setPageData}
-                    interactionMode="pointer"
-                />
-            )}
+            ${pageData.scrolls.length === 0
+                ? html`<div class="popup__empty-state">No marks on this page yet</div>`
+                : html`
+                    <${SortableScrollList}
+                        pageData=${pageData}
+                        setPageData=${setPageData}
+                        interactionMode="pointer"
+                        renderItem=${renderScrollItem}
+                    />
+                `}
         </div>
-    )
+    `
 }
 
 /** @param {{scrollDetails: ScrollDetails}} props */
@@ -287,19 +297,16 @@ const Scroll = ({scrollDetails}) => {
         })
     }
 
-    return GenericScroll({
-        scrollDetails,
-        onJump,
-        pageData,
-        setPageData,
-        patchScroll,
-    })
+    return html`
+        <${GenericScroll}
+            scrollDetails=${scrollDetails}
+            onJump=${onJump}
+            pageData=${pageData}
+            setPageData=${setPageData}
+            patchScroll=${patchScroll}
+        />
+    `
 }
-
-// CONTENT SCRIPTS
-
-// NOTE: Below are content scripts, they run on a seperate environment and
-// thus they cannot use things in outer scope of their function
 
 /** @param {string} absoluteURL @returns {Promise<PageData>} */
 const saveScrollDetails = async (absoluteURL) => {
@@ -359,7 +366,6 @@ const saveScrollDetails = async (absoluteURL) => {
     }
 
     await chrome.storage.local.set({[absoluteURL]: pageData})
-
     return pageData
 }
 
@@ -392,9 +398,7 @@ const jumpToScrollPosition = ({
         0
     )
 
-    const toJumpPositionY =
-        normalizedPercentage * currentScrollableHeight
-
+    const toJumpPositionY = normalizedPercentage * currentScrollableHeight
     window.scrollTo(0, toJumpPositionY)
 }
 

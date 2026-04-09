@@ -1,15 +1,9 @@
 // @ts-check
 
-import {createRoot} from 'react-dom/client'
-import {useState, useEffect} from 'react'
+import {html, render, useEffect, useState} from './ui.js'
 import {getAppRoot} from './app-root.js'
-
-import {
-    GenericScroll,
-    SortableScrollList,
-    usePageDataState,
-} from './common.jsx'
-import {Icon} from './icons.jsx'
+import {GenericScroll, SortableScrollList, usePageDataState} from './common.js'
+import {Icon} from './icons.js'
 import {initializeTheme} from './theme.js'
 
 /** @typedef {import('./types.js').PageData} PageData */
@@ -17,10 +11,11 @@ import {initializeTheme} from './theme.js'
 /** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
 
 /** @typedef {[string, PageData]} PageEntry */
-/** @typedef {import('react').Dispatch<import('react').SetStateAction<PageDetailsByURL>>} SetPagesByURL */
+/** @typedef {(current: PageDetailsByURL | ((current: PageDetailsByURL) => PageDetailsByURL)) => void} SetPagesByURL */
 
 const {entries} = Object
 const allOrigins = ['<all_urls>']
+const middot = String.fromCharCode(183)
 
 /** @param {string} iso @returns {number} */
 const parseTimestamp = (iso) => {
@@ -69,9 +64,7 @@ const main = async () => {
         /** @type {Record<string, unknown>} */ (await chrome.storage.local.get())
     )
 
-    createRoot(getAppRoot()).render(
-        <App pageDetailsByURL={pageDetailsByURL} />
-    )
+    render(html`<${App} pageDetailsByURL=${pageDetailsByURL} />`, getAppRoot())
 }
 
 /** @param {{pageDetailsByURL: PageDetailsByURL}} props */
@@ -88,7 +81,8 @@ const App = ({pageDetailsByURL}) => {
         const onStorageChange = (changes, areaName) => {
             if (areaName !== 'local') return
 
-            setPagesByURL((current) => {
+            /** @param {PageDetailsByURL} current */
+            const updatePages = (current) => {
                 const next = {...current}
                 let hasChanged = false
 
@@ -111,7 +105,9 @@ const App = ({pageDetailsByURL}) => {
                 }
 
                 return hasChanged ? next : current
-            })
+            }
+
+            setPagesByURL(updatePages)
         }
 
         chrome.storage.onChanged.addListener(onStorageChange)
@@ -146,110 +142,135 @@ const App = ({pageDetailsByURL}) => {
             url.includes(searchText) ||
             details.title?.includes(searchText) ||
             details.scrolls.some(
-                (s) =>
-                    s.note?.includes(searchText) ||
-                    s.name?.includes(searchText)
+                /** @param {ScrollDetails} scroll */
+                (scroll) =>
+                    scroll.note?.includes(searchText) ||
+                    scroll.name?.includes(searchText)
             )
     )
 
     const visibleEntries = [...filteredEntries].sort(comparePagesByNewestUpdate)
-
     const totalMarks = entries(pagesByURL).reduce(
-        (sum, [, details]) => sum + details.scrolls.length, 0
+        (sum, [, details]) => sum + details.scrolls.length,
+        0
     )
+    const subtitle = `${filteredEntries.length} page${filteredEntries.length !== 1 ? 's' : ''} ${middot} ${totalMarks} mark${totalMarks !== 1 ? 's' : ''} total`
 
-    return (
-        <div className="manage-page">
-            <div className="manage-page__topbar" />
+    /** @param {string} url */
+    const renderPage = (url) => html`
+        <${Page}
+            key=${url}
+            url=${url}
+            setPagesByURL=${setPagesByURL}
+            onMissingPermission=${handleMissingAutoJumpPermission}
+        />
+    `
 
-            <header className="manage-page__header">
-                <div className="manage-page__header-inner">
-                    <div className="manage-page__hero">
-                        <div className="manage-page__hero-icon">
-                            <Icon icon="bookBookmark" className="icon icon--lg icon--inverse" />
+    return html`
+        <div class="manage-page">
+            <div class="manage-page__topbar"></div>
+
+            <header class="manage-page__header">
+                <div class="manage-page__header-inner">
+                    <div class="manage-page__hero">
+                        <div class="manage-page__hero-icon">
+                            <${Icon}
+                                icon="bookBookmark"
+                                className="icon icon--lg icon--inverse"
+                            />
                         </div>
                         <div>
-                            <h1 className="manage-page__title">
-                                Your Reading Marks
-                            </h1>
-                            <p className="manage-page__subtitle">
-                                {filteredEntries.length} page{filteredEntries.length !== 1 ? 's' : ''} &middot; {totalMarks} mark{totalMarks !== 1 ? 's' : ''} total
-                            </p>
+                            <h1 class="manage-page__title">Your Reading Marks</h1>
+                            <p class="manage-page__subtitle">${subtitle}</p>
                         </div>
                     </div>
 
-                    <div className="manage-search">
-                        <Icon icon="magnifyingGlass" className="manage-search__icon icon icon--sm" />
+                    <div class="manage-search">
+                        <${Icon}
+                            icon="magnifyingGlass"
+                            className="manage-search__icon icon icon--sm"
+                        />
                         <input
                             type="text"
                             placeholder="Search pages, marks, notes..."
-                            onChange={(e) => setSearchText(e.target.value || null)}
-                            className="manage-search__input"
+                            onInput=${
+                                /** @param {InputEvent & {currentTarget: HTMLInputElement}} event */
+                                (event) => {
+                                    setSearchText(event.currentTarget.value || null)
+                                }
+                            }
+                            class="manage-search__input"
                         />
                     </div>
                 </div>
             </header>
 
-            <main className="manage-page__content animate-fade-in-up">
-                {showPermissionPrompt && (
-                    <div className="permission-modal">
-                        <div className="permission-modal__card">
-                            <h3 className="permission-modal__title">
-                                Enable auto-jump permission
-                            </h3>
-                            <p className="permission-modal__text">
-                                Auto-jump requires all-sites access. If you want to jump directly to saved scroll
-                                positions, enable this permission. If you prefer not to enable it, you can still open
-                                pages normally by clicking their title or URL.
-                            </p>
-                            <div className="permission-modal__actions">
-                                <button
-                                    onClick={() => {
-                                        setPendingJump(null)
-                                        setShowPermissionPrompt(false)
-                                    }}
-                                    className="button button--secondary"
-                                >
-                                    Hide
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        void handleEnableAutoJump()
-                                    }}
-                                    className="button button--primary"
-                                >
-                                    Enable
-                                </button>
+            <main class="manage-page__content animate-fade-in-up">
+                ${showPermissionPrompt
+                    ? html`
+                        <div class="permission-modal">
+                            <div class="permission-modal__card">
+                                <h3 class="permission-modal__title">
+                                    Enable auto-jump permission
+                                </h3>
+                                <p class="permission-modal__text">
+                                    Auto-jump requires all-sites access. If you want to jump directly to saved scroll
+                                    positions, enable this permission. If you prefer not to enable it, you can still
+                                    open pages normally by clicking their title or URL.
+                                </p>
+                                <div class="permission-modal__actions">
+                                    <button
+                                        type="button"
+                                        onClick=${() => {
+                                            setPendingJump(null)
+                                            setShowPermissionPrompt(false)
+                                        }}
+                                        class="button button--secondary"
+                                    >
+                                        Hide
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick=${() => {
+                                            void handleEnableAutoJump()
+                                        }}
+                                        class="button button--primary"
+                                    >
+                                        Enable
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-                {filteredEntries.length === 0 ? (
-                    <div className="manage-empty-state">
-                        <div className="manage-empty-state__icon-wrap">
-                            <Icon icon="bookBookmark" className="icon icon--xl manage-empty-state__icon" />
+                    `
+                    : null}
+
+                ${filteredEntries.length === 0
+                    ? html`
+                        <div class="manage-empty-state">
+                            <div class="manage-empty-state__icon-wrap">
+                                <${Icon}
+                                    icon="bookBookmark"
+                                    className="icon icon--xl manage-empty-state__icon"
+                                />
+                            </div>
+                            <p class="manage-empty-state__title">
+                                ${searchText ? 'No marks match your search' : 'No saved marks yet'}
+                            </p>
+                            <p class="manage-empty-state__text">
+                                ${searchText
+                                    ? 'Try a different search term'
+                                    : 'Use the extension popup to mark scroll positions'}
+                            </p>
                         </div>
-                        <p className="manage-empty-state__title">
-                            {searchText ? 'No marks match your search' : 'No saved marks yet'}
-                        </p>
-                        <p className="manage-empty-state__text">
-                            {searchText ? 'Try a different search term' : 'Use the extension popup to mark scroll positions'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="manage-page__list">
-                        {visibleEntries.map(([url]) => (
-                            <Page
-                                {...{url, setPagesByURL}}
-                                onMissingPermission={handleMissingAutoJumpPermission}
-                                key={url}
-                            />
-                        ))}
-                    </div>
-                )}
+                    `
+                    : html`
+                        <div class="manage-page__list">
+                            ${visibleEntries.map(([url]) => renderPage(url))}
+                        </div>
+                    `}
             </main>
         </div>
-    )
+    `
 }
 
 /** @param {string} iso @returns {string} */
@@ -293,9 +314,7 @@ const jumpToScrollPosition = ({
         0
     )
 
-    const toJumpPositionY =
-        normalizedPercentage * currentScrollableHeight
-
+    const toJumpPositionY = normalizedPercentage * currentScrollableHeight
     window.scrollTo(0, toJumpPositionY)
 }
 
@@ -359,13 +378,22 @@ const jumpToMarkedPosition = async (url, scrollDetails) => {
 /** @param {PageProps} props */
 const Page = ({url, setPagesByURL, onMissingPermission}) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(url)
-
     const [expand, setExpand] = useState(false)
     const [jumpError, setJumpError] = useState(/** @type {string | null} */ (null))
+    const href = `http://${url}`
 
-    const handleExpand = () => {
-        setExpand(!expand)
-    }
+    /** @param {ScrollDetails} details */
+    const renderScrollItem = (details) => html`
+        <${GenericScroll}
+            scrollDetails=${details}
+            onJump=${() => {
+                void handleJump(details)
+            }}
+            patchScroll=${patchScroll}
+            setPageData=${setPageData}
+            pageData=${pageData}
+        />
+    `
 
     const handlePageDelete = () => {
         void chrome.storage.local.remove([url])
@@ -393,73 +421,67 @@ const Page = ({url, setPagesByURL, onMissingPermission}) => {
     }
 
     const lastMarkedDate = pageData.scrolls.length > 0
-        ? relativeDate(pageData.scrolls.reduce((latest, s) =>
-            s.dateISO > latest ? s.dateISO : latest, pageData.scrolls[0].dateISO))
+        ? relativeDate(
+            pageData.scrolls.reduce(
+                (latest, scroll) => (scroll.dateISO > latest ? scroll.dateISO : latest),
+                pageData.scrolls[0].dateISO
+            )
+        )
         : null
 
-    return (
-        <div className="page-card">
-            <div className="page-card__row">
-                <div className="page-card__info">
-                    <a href={'http://' + url} target="_blank" className="page-card__title">
-                        {pageData.title}
+    return html`
+        <div class="page-card">
+            <div class="page-card__row">
+                <div class="page-card__info">
+                    <a href=${href} target="_blank" class="page-card__title">
+                        ${pageData.title}
                     </a>
-                    <span className="page-card__meta-row">
-                        <a href={'http://' + url} target="_blank" className="page-card__url">
-                            {url}
+                    <span class="page-card__meta-row">
+                        <a href=${href} target="_blank" class="page-card__url">
+                            ${url}
                         </a>
-                        <span className="page-card__count">
-                            {pageData.scrolls.length} mark{pageData.scrolls.length !== 1 ? 's' : ''}
+                        <span class="page-card__count">
+                            ${pageData.scrolls.length} mark${pageData.scrolls.length !== 1 ? 's' : ''}
                         </span>
                     </span>
                 </div>
-                {lastMarkedDate && (
-                    <span className="page-card__updated">
-                        {lastMarkedDate}
-                    </span>
-                )}
-                <div className="page-card__actions">
+                ${lastMarkedDate
+                    ? html`<span class="page-card__updated">${lastMarkedDate}</span>`
+                    : null}
+                <div class="page-card__actions">
                     <button
-                        onClick={handleExpand}
-                        className="icon-button page-card__toggle"
+                        type="button"
+                        onClick=${() => setExpand(!expand)}
+                        class="icon-button page-card__toggle"
                     >
-                        <Icon icon={expand ? 'angleUp' : 'angleDown'} className="icon icon--sm" />
+                        <${Icon}
+                            icon=${expand ? 'angleUp' : 'angleDown'}
+                            className="icon icon--sm"
+                        />
                     </button>
                     <button
-                        onClick={handlePageDelete}
-                        className="icon-button page-card__delete"
+                        type="button"
+                        onClick=${handlePageDelete}
+                        class="icon-button page-card__delete"
                     >
-                        <Icon icon="trashCan" className="icon icon--xs" />
+                        <${Icon} icon="trashCan" className="icon icon--xs" />
                     </button>
                 </div>
             </div>
-            {expand && (
-                <div className="page-card__details animate-fade-in-up">
-                    <SortableScrollList
-                        children={pageData.scrolls.map((details) => (
-                            <GenericScroll
-                                scrollDetails={details}
-                                key={details.uuid}
-                                onJump={() => {
-                                    void handleJump(details)
-                                }}
-                                patchScroll={patchScroll}
-                                setPageData={setPageData}
-                                pageData={pageData}
-                            />
-                        ))}
-                        pageData={pageData}
-                        setPageData={setPageData}
-                    />
-                </div>
-            )}
-            {jumpError && (
-                <p className="page-card__error">
-                    {jumpError}
-                </p>
-            )}
+            ${expand
+                ? html`
+                    <div class="page-card__details animate-fade-in-up">
+                        <${SortableScrollList}
+                            pageData=${pageData}
+                            setPageData=${setPageData}
+                            renderItem=${renderScrollItem}
+                        />
+                    </div>
+                `
+                : null}
+            ${jumpError ? html`<p class="page-card__error">${jumpError}</p>` : null}
         </div>
-    )
+    `
 }
 
 void main()

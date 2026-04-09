@@ -1,13 +1,19 @@
+// @ts-check
+
+/** @typedef {{scrolls: unknown[]}} PageDataLike */
+
 const MAX_BADGE_COUNT = 9
 const BADGE_COLOR = '#3e72b7'
 
+/** @param {unknown} value @returns {value is PageDataLike} */
 const isPageDataLike = (value) =>
     Boolean(
         value &&
             typeof value === 'object' &&
-            Array.isArray(value.scrolls)
+            Array.isArray(/** @type {{scrolls?: unknown}} */ (value).scrolls)
     )
 
+/** @param {string | undefined} urlString @returns {string | null} */
 const toStorageKey = (urlString) => {
     if (!urlString) return null
 
@@ -20,6 +26,7 @@ const toStorageKey = (urlString) => {
     }
 }
 
+/** @param {number} tabId @param {number} markCount */
 const setBadge = async (tabId, markCount) => {
     if (!Number.isInteger(tabId)) return
 
@@ -37,6 +44,7 @@ const setBadge = async (tabId, markCount) => {
     await chrome.action.setBadgeText({tabId, text: badgeText})
 }
 
+/** @param {number} tabId @param {string | undefined} urlString */
 const updateBadgeForTab = async (tabId, urlString) => {
     const storageKey = toStorageKey(urlString)
     if (!storageKey) {
@@ -73,7 +81,7 @@ chrome.tabs.onActivated.addListener(({tabId}) => {
     void chrome.tabs
         .get(tabId)
         .then((tab) => updateBadgeForTab(tabId, tab.url))
-        .catch(() => setBadge(tabId, false))
+        .catch(() => setBadge(tabId, 0))
 })
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

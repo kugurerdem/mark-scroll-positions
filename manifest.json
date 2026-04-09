@@ -8,9 +8,9 @@
     },
     "background": {
         "scripts": [
-            "background.js"
+            "public/background.js"
         ],
-        "service_worker": "background.js"
+        "service_worker": "public/background.js"
     },
     "options_ui": {
         "page": "src/settings.html",
@@ -25,8 +25,8 @@
         "<all_urls>"
     ],
     "icons": {
-        "48": "assets/icon48.png",
-        "128": "assets/icon128.png"
+        "48": "public/assets/icon48.png",
+        "128": "public/assets/icon128.png"
     },
     "browser_specific_settings": {
         "gecko": {

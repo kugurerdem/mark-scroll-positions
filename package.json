@@ -3,15 +3,10 @@
   "version": "1.7.1",
   "type": "module",
   "scripts": {
-    "dev": "vite ./src",
-    "build": "vite build",
-    "preview": "vite preview",
-    "watch": "vite build --watch",
-    "prepare:firefox-manifest": "node scripts/prepare-firefox-manifest.mjs",
-    "start:firefox": "npm run build && npm run prepare:firefox-manifest && web-ext run --source-dir=./build --target=firefox-desktop",
+    "start:firefox": "web-ext run --source-dir=. --target=firefox-desktop",
     "typecheck": "tsc --noEmit",
-    "preversion": "npm run typecheck && npm run build",
-    "version": "node scripts/sync-manifest-version.mjs && git add package.json package-lock.json public/manifest.json",
+    "preversion": "npm run typecheck",
+    "version": "node scripts/sync-manifest-version.mjs && git add package.json package-lock.json manifest.json",
     "release:patch": "npm version patch -m \"Release v%s\"",
     "release:minor": "npm version minor -m \"Release v%s\"",
     "release:major": "npm version major -m \"Release v%s\""
@@ -20,19 +15,10 @@
   "author": "",
   "license": "ISC",
   "description": "",
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
   "devDependencies": {
     "@types/chrome": "^0.1.1",
-    "@types/react": "^19.2.10",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^8.53.0",
-    "eslint-plugin-react": "^7.33.2",
     "typescript": "^5.8.3",
-    "vite": "^7.1.11",
     "web-ext": "^10.1.0"
   }
 }
