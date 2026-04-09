@@ -1,5 +1,4 @@
 import {useState, useEffect, useRef} from 'react'
-import {format} from 'date-fns'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlay, faAngleUp, faAngleDown, faTrashCan, faNoteSticky} from '@fortawesome/free-solid-svg-icons'
 
@@ -15,6 +14,11 @@ import type {
 
 const {assign} = Object
 const DRAG_THRESHOLD_PX = 4
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+})
 
 const isInteractiveTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false
@@ -449,7 +453,7 @@ export const GenericScroll = ({
             {expanded && (
                 <div className="scroll-card__details animate-fade-in-up">
                     <div className="scroll-card__details-header">
-                        <span className="scroll-card__date"> {format(new Date(dateISO), 'MMM d, yyyy')} </span>
+                        <span className="scroll-card__date"> {dateFormatter.format(new Date(dateISO))} </span>
                         <span className="scroll-card__detail-actions">
                             <Button onClick={onRemove} icon={faTrashCan} />
                             {!displayNote && (
