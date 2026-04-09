@@ -259,6 +259,7 @@ const App = ({
                     ))}
                     pageData={pageData}
                     setPageData={setPageData}
+                    interactionMode="pointer"
                 />
             )}
         </div>

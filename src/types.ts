@@ -52,6 +52,7 @@ export interface SortableScrollListProps {
   children: ReactNode[];
   pageData: PageData;
   setPageData: (data: PageData) => void;
+  interactionMode?: 'native' | 'pointer';
 }
 
 export interface TextInputProps {
