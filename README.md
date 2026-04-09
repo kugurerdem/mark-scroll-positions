@@ -36,10 +36,11 @@ the build output changes.
 
 # Release
 
-Use `release-it` to bump versions and create a release commit + tag.
+Use `npm version` to bump the version and create the release commit + git tag.
 
 ```
 npm run release:patch
+git push origin master --follow-tags
 ```
 
 Also available:
@@ -49,5 +50,8 @@ npm run release:minor
 npm run release:major
 ```
 
-The release flow runs `typecheck` and `build`, updates `package.json`, and then
-syncs `public/manifest.json` to the same version.
+The local release flow runs `typecheck` and `build`, updates `package.json` and
+`package-lock.json`, then syncs `public/manifest.json` to the same version
+before the version commit and `vX.Y.Z` tag are created.
+
+GitHub Actions creates the GitHub release when that tag is pushed.
