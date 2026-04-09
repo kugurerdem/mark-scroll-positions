@@ -1,6 +1,6 @@
 // @ts-check
 
-import {useState, useEffect, useRef} from 'react'
+import {isValidElement, useState, useEffect, useRef} from 'react'
 import {Icon} from './icons.jsx'
 
 /** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
@@ -18,6 +18,15 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
     day: 'numeric',
     year: 'numeric',
 })
+
+/** @param {import('react').ReactNode[]} children @param {string} key @returns {import('react').ReactElement | null} */
+const findChildByKey = (children, key) => {
+    const matchingChild = children.find(
+        (child) => isValidElement(child) && child.key === key
+    )
+
+    return isValidElement(matchingChild) ? matchingChild : null
+}
 
 /** @param {EventTarget | null} target @returns {boolean} */
 const isInteractiveTarget = (target) => {
@@ -334,13 +343,6 @@ export const SortableScrollList = ({
                             transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(1.02)`,
                         }
                         : undefined
-                const matchingChild = children.find(
-                    (child) =>
-                        typeof child === 'object' &&
-                        child !== null &&
-                        'key' in child &&
-                        child.key === scroll.uuid
-                )
 
                 return (
                     <div
@@ -374,7 +376,7 @@ export const SortableScrollList = ({
                         }${isDragOver ? ' scroll-list__item-shell--drag-over' : ''}`}
                         style={shellStyle}
                     >
-                        {matchingChild ?? null}
+                        {findChildByKey(children, scroll.uuid)}
                     </div>
                 )
             })}

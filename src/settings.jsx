@@ -2,6 +2,7 @@
 
 import {createRoot} from 'react-dom/client'
 import {useCallback, useEffect, useState} from 'react'
+import {getAppRoot} from './app-root.js'
 
 import {
     getThemePreference,
@@ -24,6 +25,10 @@ import {
 /** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
 
 const MARK_INSERT_POSITION_KEY = 'markInsertPosition'
+
+/** @param {string} value @returns {QueryIdentityMode | null} */
+const parseQueryIdentityMode = (value) =>
+    value === 'include' || value === 'ignore' ? value : null
 
 /** @param {unknown} value @returns {value is ScrollInsertPosition} */
 const isScrollInsertPosition = (value) =>
@@ -70,13 +75,7 @@ const defaultQueryIdentitySettings = {
 const main = async () => {
     await initializeTheme()
 
-    const rootElement = document.getElementById('app')
-
-    if (!(rootElement instanceof HTMLElement)) {
-        throw new Error('Missing app root element')
-    }
-
-    createRoot(rootElement).render(<App />)
+    createRoot(getAppRoot()).render(<App />)
 }
 
 const App = () => {
@@ -367,8 +366,8 @@ const App = () => {
                             <select
                                 value={newHostnameMode}
                                 onChange={(e) => {
-                                    const nextMode = e.target.value
-                                    if (nextMode === 'include' || nextMode === 'ignore') {
+                                    const nextMode = parseQueryIdentityMode(e.target.value)
+                                    if (nextMode) {
                                         setNewHostnameMode(nextMode)
                                     }
                                 }}
@@ -408,8 +407,8 @@ const App = () => {
                                         <select
                                             value={mode}
                                             onChange={(e) => {
-                                                const nextMode = e.target.value
-                                                if (nextMode === 'include' || nextMode === 'ignore') {
+                                                const nextMode = parseQueryIdentityMode(e.target.value)
+                                                if (nextMode) {
                                                     onHostnameModeChange(hostname, nextMode)
                                                 }
                                             }}
