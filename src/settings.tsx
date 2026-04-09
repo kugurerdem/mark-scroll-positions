@@ -241,48 +241,48 @@ const App = () => {
     )
 
     return (
-        <main className="min-h-screen bg-cream-200 px-6 py-10">
-            <section className="max-w-xl mx-auto rounded-2xl border border-cream-300 bg-cream-50 p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.12)] animate-fade-in-up">
-                <header className="flex items-center gap-3">
-                    <span className="inline-flex w-10 h-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 shadow-sm shadow-accent-500/20">
+        <main className="settings-page">
+            <section className="settings-card animate-fade-in-up">
+                <header className="settings-card__header">
+                    <span className="settings-card__icon-wrap">
                         <FontAwesomeIcon
                             icon={faPalette}
-                            className="w-4 h-4 text-white pointer-events-none"
+                            className="icon icon--sm icon--inverse"
                         />
                     </span>
                     <div>
-                        <h1 className="font-display text-2xl font-semibold text-ink-900 tracking-tight leading-tight">
+                        <h1 className="settings-card__title">
                             Preferences
                         </h1>
-                        <p className="text-ink-400 text-sm mt-0.5">
+                        <p className="settings-card__subtitle">
                             Customize how marks are created and grouped.
                         </p>
                     </div>
                 </header>
 
-                <div className="mt-5 rounded-xl border border-cream-300 bg-cream-100 p-4">
-                    <p className="text-[11px] uppercase tracking-wider font-medium text-ink-400 mb-2">
+                <div className="settings-section settings-section--spaced">
+                    <p className="settings-section__eyebrow">
                         Theme Mode
                     </p>
                     <ThemeToggle value={themePreference} onChange={onThemeChange} />
-                    <p className="mt-3 text-xs text-ink-400 leading-relaxed">
+                    <p className="settings-section__help settings-section__help--spaced">
                         System follows your browser appearance preferences.
                     </p>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-cream-300 bg-cream-100 p-4">
-                    <p className="text-[11px] uppercase tracking-wider font-medium text-ink-400 mb-2">
+                <div className="settings-section">
+                    <p className="settings-section__eyebrow">
                         New Mark Placement
                     </p>
-                    <div className="inline-flex w-full rounded-lg border border-cream-300 bg-cream-50 p-1">
+                    <div className="segmented-control">
                         <button
                             onClick={() => {
                                 onMarkInsertPositionChange('top')
                             }}
-                            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                            className={`segmented-control__button${
                                 markInsertPosition === 'top'
-                                    ? 'bg-accent-500 text-white'
-                                    : 'text-ink-600 hover:bg-cream-100'
+                                    ? ' segmented-control__button--active'
+                                    : ''
                             }`}
                         >
                             Top
@@ -291,28 +291,28 @@ const App = () => {
                             onClick={() => {
                                 onMarkInsertPositionChange('bottom')
                             }}
-                            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                            className={`segmented-control__button${
                                 markInsertPosition === 'bottom'
-                                    ? 'bg-accent-500 text-white'
-                                    : 'text-ink-600 hover:bg-cream-100'
+                                    ? ' segmented-control__button--active'
+                                    : ''
                             }`}
                         >
                             Bottom
                         </button>
                     </div>
-                    <p className="mt-3 text-xs text-ink-400 leading-relaxed">
+                    <p className="settings-section__help settings-section__help--spaced">
                         Choose whether new marks are added first or last in the list.
                     </p>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-cream-300 bg-cream-100 p-4">
-                    <p className="text-[11px] uppercase tracking-wider font-medium text-ink-400 mb-2">
+                <div className="settings-section">
+                    <p className="settings-section__eyebrow">
                         URL Matching
                     </p>
-                    <p className="text-xs text-ink-400 leading-relaxed">
-                        Query parameters are the <span className="text-ink-600">?key=value</span> parts at the end of a URL. When you enable this setting, pages with different query parameters (e.g. <span className="text-ink-600">?page=1</span> vs <span className="text-ink-600">?page=2</span>) are treated as separate pages, each with their own marks. Only enable this if the content of your pages changes based on query parameters.
+                    <p className="settings-section__help">
+                        Query parameters are the <span className="settings-section__inline-code">?key=value</span> parts at the end of a URL. When you enable this setting, pages with different query parameters (e.g. <span className="settings-section__inline-code">?page=1</span> vs <span className="settings-section__inline-code">?page=2</span>) are treated as separate pages, each with their own marks. Only enable this if the content of your pages changes based on query parameters.
                     </p>
-                    <label className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-600 cursor-pointer">
+                    <label className="settings-checkbox">
                         <input
                             type="checkbox"
                             checked={queryIdentitySettings.globalMode === 'include'}
@@ -321,23 +321,23 @@ const App = () => {
                                     e.target.checked ? 'include' : 'ignore'
                                 )
                             }}
-                            className="w-4 h-4 accent-accent-600 rounded border-cream-400"
+                            className="checkbox"
                         />
                         Include query parameters by default
                     </label>
-                    <p className="mt-1 text-xs text-ink-400 leading-relaxed">
+                    <p className="settings-section__help settings-section__help--tight">
                         Add site-specific rules only when a site should behave differently.
                     </p>
 
-                    <div className="mt-4 border-t border-cream-300 pt-4">
-                        <p className="text-[11px] uppercase tracking-wider font-medium text-ink-400 mb-2">
+                    <div className="settings-subsection">
+                        <p className="settings-section__eyebrow">
                             Site-Specific Rules
                         </p>
-                        <p className="text-xs text-ink-400 leading-relaxed">
-                            Example: set <span className="text-ink-600">news.ycombinator.com</span> to use query parameters even if your default ignores them.
+                        <p className="settings-section__help">
+                            Example: set <span className="settings-section__inline-code">news.ycombinator.com</span> to use query parameters even if your default ignores them.
                         </p>
 
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="settings-rule-builder">
                             <input
                                 value={newHostname}
                                 placeholder="example.com"
@@ -350,44 +350,44 @@ const App = () => {
                                     e.preventDefault()
                                     onAddHostnameOverride()
                                 }}
-                                className="flex-1 h-9 px-3 border border-cream-300 rounded-lg bg-cream-50 font-body text-[13px] text-ink-700 outline-none transition-all focus:border-accent-400 focus:shadow-[0_0_0_3px_rgba(62,114,183,0.16)] placeholder:text-ink-300"
+                                className="settings-input settings-input--fill"
                             />
                             <select
                                 value={newHostnameMode}
                                 onChange={(e) => {
                                     setNewHostnameMode(e.target.value as QueryIdentityMode)
                                 }}
-                                className="h-9 px-3 border border-cream-300 rounded-lg bg-cream-50 text-[13px] font-medium text-ink-700 outline-none transition-all focus:border-accent-400"
+                                className="settings-select"
                             >
                                 <option value="include">Use query</option>
                                 <option value="ignore">Ignore query</option>
                             </select>
                             <button
                                 onClick={onAddHostnameOverride}
-                                className="h-9 px-3 rounded-lg bg-accent-500 text-white text-[13px] font-medium transition-colors hover:bg-accent-600"
+                                className="button button--primary settings-add-button"
                             >
                                 Add
                             </button>
                         </div>
 
                         {hostnameError && (
-                            <p className="mt-2 text-xs text-red-600">
+                            <p className="settings-error">
                                 {hostnameError}
                             </p>
                         )}
 
                         {hostnameEntries.length === 0 ? (
-                            <p className="mt-3 text-xs text-ink-400">
+                            <p className="settings-empty-state">
                                 No site-specific rules yet.
                             </p>
                         ) : (
-                            <div className="mt-3 flex flex-col gap-2">
+                            <div className="settings-rule-list">
                                 {hostnameEntries.map(([hostname, mode]) => (
                                     <div
                                         key={hostname}
-                                        className="flex items-center gap-2 rounded-lg border border-cream-300 bg-cream-50 p-2"
+                                        className="settings-rule-item"
                                     >
-                                        <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink-700">
+                                        <span className="settings-rule-item__hostname">
                                             {hostname}
                                         </span>
                                         <select
@@ -398,7 +398,7 @@ const App = () => {
                                                     e.target.value as QueryIdentityMode
                                                 )
                                             }}
-                                            className="px-2 py-1.5 border border-cream-300 rounded-md bg-cream-100 text-[11px] font-medium text-ink-700 outline-none transition-all focus:border-accent-400"
+                                            className="settings-rule-item__select"
                                         >
                                             <option value="include">Use query</option>
                                             <option value="ignore">Ignore query</option>
@@ -409,9 +409,9 @@ const App = () => {
                                             }}
                                             title="Remove site rule"
                                             aria-label={`Remove site rule for ${hostname}`}
-                                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-400 cursor-pointer transition-colors hover:bg-accent-50 hover:text-accent-700"
+                                            className="icon-button settings-rule-item__remove"
                                         >
-                                            <FontAwesomeIcon icon={faTrashCan} className="w-3 h-3 text-current pointer-events-none" />
+                                            <FontAwesomeIcon icon={faTrashCan} className="icon icon--xs" />
                                         </button>
                                     </div>
                                 ))}

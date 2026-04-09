@@ -156,63 +156,59 @@ const App = ({pageDetailsByURL}: AppProps) => {
     )
 
     return (
-        <div className="min-h-screen bg-cream-200">
-            {/* Decorative top bar */}
-            <div className="h-1 bg-gradient-to-r from-accent-300 via-accent-500 to-accent-700" />
+        <div className="manage-page">
+            <div className="manage-page__topbar" />
 
-            {/* Header area */}
-            <header className="bg-cream-50 border-b border-cream-300 shadow-[0_1px_8px_-2px_rgba(0,0,0,0.04)]">
-                <div className="max-w-4xl mx-auto px-8 py-6">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-sm shadow-accent-500/20">
-                            <FontAwesomeIcon icon={faBookBookmark} className="w-5 h-5 text-white pointer-events-none" />
+            <header className="manage-page__header">
+                <div className="manage-page__header-inner">
+                    <div className="manage-page__hero">
+                        <div className="manage-page__hero-icon">
+                            <FontAwesomeIcon icon={faBookBookmark} className="icon icon--lg icon--inverse" />
                         </div>
                         <div>
-                            <h1 className="font-display text-2xl font-bold text-ink-900 tracking-tight leading-tight">
+                            <h1 className="manage-page__title">
                                 Your Reading Marks
                             </h1>
-                            <p className="text-ink-400 text-xs mt-0.5">
+                            <p className="manage-page__subtitle">
                                 {filteredEntries.length} page{filteredEntries.length !== 1 ? 's' : ''} &middot; {totalMarks} mark{totalMarks !== 1 ? 's' : ''} total
                             </p>
                         </div>
                     </div>
 
-                    {/* Search bar */}
-                    <div className="relative max-w-sm">
+                    <div className="manage-search">
                         <FontAwesomeIcon
                             icon={faMagnifyingGlass}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-300 pointer-events-none"
+                            className="manage-search__icon icon icon--sm"
                         />
                         <input
                             type="text"
                             placeholder="Search pages, marks, notes..."
                             onChange={(e) => setSearchText(e.target.value || null)}
-                            className="w-full pl-9 pr-4 py-2.5 border border-cream-300 rounded-xl bg-cream-100 font-body text-[13px] text-ink-700 outline-none transition-all focus:border-accent-400 focus:bg-cream-50 focus:shadow-[0_0_0_3px_rgba(62,114,183,0.14)] placeholder:text-ink-300"
+                            className="manage-search__input"
                         />
                     </div>
                 </div>
             </header>
 
-            {/* Content area */}
-            <main className="max-w-4xl mx-auto px-8 py-6 animate-fade-in-up">
+            <main className="manage-page__content animate-fade-in-up">
                 {showPermissionPrompt && (
-                    <div className="fixed inset-0 z-50 bg-transparent flex items-center justify-center px-4">
-                        <div className="w-full max-w-md rounded-2xl border border-cream-300 bg-cream-50 p-5 shadow-[0_20px_48px_-18px_rgba(0,0,0,0.3)]">
-                            <h3 className="font-display text-lg font-semibold text-ink-900 leading-tight">
+                    <div className="permission-modal">
+                        <div className="permission-modal__card">
+                            <h3 className="permission-modal__title">
                                 Enable auto-jump permission
                             </h3>
-                            <p className="mt-2 text-sm text-ink-500 leading-relaxed">
+                            <p className="permission-modal__text">
                                 Auto-jump requires all-sites access. If you want to jump directly to saved scroll
                                 positions, enable this permission. If you prefer not to enable it, you can still open
                                 pages normally by clicking their title or URL.
                             </p>
-                            <div className="mt-4 flex items-center justify-end gap-2">
+                            <div className="permission-modal__actions">
                                 <button
                                     onClick={() => {
                                         setPendingJump(null)
                                         setShowPermissionPrompt(false)
                                     }}
-                                    className="px-3.5 py-2 rounded-lg border border-cream-300 bg-cream-100 text-ink-600 text-sm font-medium transition-colors hover:bg-cream-200"
+                                    className="button button--secondary"
                                 >
                                     Hide
                                 </button>
@@ -220,7 +216,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                                     onClick={() => {
                                         void handleEnableAutoJump()
                                     }}
-                                    className="px-3.5 py-2 rounded-lg bg-accent-500 text-white text-sm font-medium transition-colors hover:bg-accent-600"
+                                    className="button button--primary"
                                 >
                                     Enable
                                 </button>
@@ -229,19 +225,19 @@ const App = ({pageDetailsByURL}: AppProps) => {
                     </div>
                 )}
                 {filteredEntries.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="w-16 h-16 rounded-2xl bg-cream-300/60 flex items-center justify-center mx-auto mb-4">
-                            <FontAwesomeIcon icon={faBookBookmark} className="w-7 h-7 text-ink-300 pointer-events-none" />
+                    <div className="manage-empty-state">
+                        <div className="manage-empty-state__icon-wrap">
+                            <FontAwesomeIcon icon={faBookBookmark} className="icon icon--xl manage-empty-state__icon" />
                         </div>
-                        <p className="text-ink-400 font-display text-lg italic">
+                        <p className="manage-empty-state__title">
                             {searchText ? 'No marks match your search' : 'No saved marks yet'}
                         </p>
-                        <p className="text-ink-300 text-xs mt-1">
+                        <p className="manage-empty-state__text">
                             {searchText ? 'Try a different search term' : 'Use the extension popup to mark scroll positions'}
                         </p>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-3">
+                    <div className="manage-page__list">
                         {visibleEntries.map(([url]) => (
                             <Page
                                 {...{url, setPagesByURL}}
@@ -389,46 +385,43 @@ const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
         : null
 
     return (
-        <div className="group bg-cream-50 border border-cream-300 rounded-2xl px-5 py-3.5 transition-all duration-200 hover:border-accent-200 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06),0_1px_6px_-1px_rgba(62,114,183,0.12)]">
-            <div className="w-full flex items-center gap-3">
-                {/* Page info */}
-                <div className="flex flex-col min-w-0 flex-1">
-                    <a href={'http://' + url} target="_blank" className="self-start text-ink-900 font-display font-semibold text-[15px] hover:text-accent-700 transition-colors truncate">
+        <div className="page-card">
+            <div className="page-card__row">
+                <div className="page-card__info">
+                    <a href={'http://' + url} target="_blank" className="page-card__title">
                         {pageData.title}
                     </a>
-                    <span className="flex items-center gap-2">
-                        <a href={'http://' + url} target="_blank" className="text-ink-400 text-xs hover:text-accent-600 transition-colors truncate">
+                    <span className="page-card__meta-row">
+                        <a href={'http://' + url} target="_blank" className="page-card__url">
                             {url}
                         </a>
-                        <span className="flex-shrink-0 text-[10px] text-ink-300 font-medium">
+                        <span className="page-card__count">
                             {pageData.scrolls.length} mark{pageData.scrolls.length !== 1 ? 's' : ''}
                         </span>
                     </span>
                 </div>
-                {/* Last marked date */}
                 {lastMarkedDate && (
-                    <span className="flex-shrink-0 text-[11px] text-ink-300 font-medium">
+                    <span className="page-card__updated">
                         {lastMarkedDate}
                     </span>
                 )}
-                {/* Actions */}
-                <div className="flex items-center gap-0.5 flex-shrink-0">
+                <div className="page-card__actions">
                     <button
                         onClick={handleExpand}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-ink-400 cursor-pointer transition-all hover:bg-accent-50 hover:text-accent-700"
+                        className="icon-button page-card__toggle"
                     >
-                        <FontAwesomeIcon icon={expand ? faAngleUp : faAngleDown} className="w-3.5 h-3.5 text-current pointer-events-none" />
+                        <FontAwesomeIcon icon={expand ? faAngleUp : faAngleDown} className="icon icon--sm" />
                     </button>
                     <button
                         onClick={handlePageDelete}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-ink-400 cursor-pointer transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                        className="icon-button page-card__delete"
                     >
-                        <FontAwesomeIcon icon={faTrashCan} className="w-3 h-3 text-current pointer-events-none" />
+                        <FontAwesomeIcon icon={faTrashCan} className="icon icon--xs" />
                     </button>
                 </div>
             </div>
             {expand && (
-                <div className="mt-3 pt-3 border-t border-cream-200 animate-fade-in-up">
+                <div className="page-card__details animate-fade-in-up">
                     <SortableScrollList
                         children={pageData.scrolls.map((details) => (
                             <GenericScroll
@@ -448,7 +441,7 @@ const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
                 </div>
             )}
             {jumpError && (
-                <p className="mt-2 text-[11px] text-red-600 font-medium">
+                <p className="page-card__error">
                     {jumpError}
                 </p>
             )}
