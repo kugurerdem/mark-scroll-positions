@@ -298,11 +298,16 @@ const saveScrollDetails = async (absoluteURL: string): Promise<PageData> => {
     const markInsertPositionKey = 'markInsertPosition'
     const isScrollInsertPosition = (value: unknown): value is ScrollInsertPosition =>
         value === 'top' || value === 'bottom'
+    const isPageData = (value: unknown): value is PageData =>
+        !!value &&
+        typeof value === 'object' &&
+        Array.isArray((value as {scrolls?: unknown}).scrolls)
 
     const uuid = crypto.randomUUID()
+    const storedPageData = (await chrome.storage.local.get(absoluteURL))[absoluteURL]
 
     const pageData: PageData =
-        (await chrome.storage.local.get(absoluteURL))[absoluteURL] || {
+        isPageData(storedPageData) ? storedPageData : {
             scrolls: [],
             title: document.title,
         }
