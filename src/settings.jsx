@@ -1,3 +1,5 @@
+// @ts-check
+
 import {createRoot} from 'react-dom/client'
 import {useCallback, useEffect, useState} from 'react'
 
@@ -6,42 +8,45 @@ import {
     initializeTheme,
     setThemePreference as setStoredThemePreference,
     subscribeThemePreference,
-} from './theme'
-import {Icon} from './icons'
-import {ThemeToggle} from './theme-toggle'
+} from './theme.js'
+import {Icon} from './icons.jsx'
+import {ThemeToggle} from './theme-toggle.jsx'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
     getQueryIdentitySettings,
     normalizeQueryIdentitySettings,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
-} from './url-identity'
+} from './url-identity.js'
 
-import type {ThemePreference} from './theme'
-import type {
-    ScrollInsertPosition,
-    QueryIdentityMode,
-    QueryIdentitySettings,
-} from './types'
+/** @typedef {import('./theme.js').ThemePreference} ThemePreference */
+/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
 
 const MARK_INSERT_POSITION_KEY = 'markInsertPosition'
 
-const isScrollInsertPosition = (value: unknown): value is ScrollInsertPosition =>
+/** @param {unknown} value @returns {value is ScrollInsertPosition} */
+const isScrollInsertPosition = (value) =>
     value === 'top' || value === 'bottom'
 
-const getScrollInsertPosition = async (): Promise<ScrollInsertPosition> => {
+/** @returns {Promise<ScrollInsertPosition>} */
+const getScrollInsertPosition = async () => {
     const result = await chrome.storage.local.get(MARK_INSERT_POSITION_KEY)
     const value = result[MARK_INSERT_POSITION_KEY]
     return isScrollInsertPosition(value) ? value : 'bottom'
 }
 
-const setScrollInsertPosition = async (position: ScrollInsertPosition): Promise<void> => {
+/** @param {ScrollInsertPosition} position @returns {Promise<void>} */
+const setScrollInsertPosition = async (position) => {
     await chrome.storage.local.set({[MARK_INSERT_POSITION_KEY]: position})
 }
 
-const hasProtocol = (value: string): boolean =>
+/** @param {string} value @returns {boolean} */
+const hasProtocol = (value) =>
     /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
 
-const normalizeHostnameInput = (value: string): string | null => {
+/** @param {string} value @returns {string | null} */
+const normalizeHostnameInput = (value) => {
     const trimmed = value.trim().toLowerCase()
     if (!trimmed) return null
 
@@ -56,7 +61,8 @@ const normalizeHostnameInput = (value: string): string | null => {
     }
 }
 
-const defaultQueryIdentitySettings: QueryIdentitySettings = {
+/** @type {QueryIdentitySettings} */
+const defaultQueryIdentitySettings = {
     globalMode: 'ignore',
     perHostMode: {},
 }
@@ -64,20 +70,26 @@ const defaultQueryIdentitySettings: QueryIdentitySettings = {
 const main = async () => {
     await initializeTheme()
 
-    createRoot(document.getElementById('app')!).render(<App />)
+    const rootElement = document.getElementById('app')
+
+    if (!(rootElement instanceof HTMLElement)) {
+        throw new Error('Missing app root element')
+    }
+
+    createRoot(rootElement).render(<App />)
 }
 
 const App = () => {
     const [themePreference, setThemePreference] =
-        useState<ThemePreference>('system')
+        useState(/** @type {ThemePreference} */ ('system'))
     const [markInsertPosition, setMarkInsertPosition] =
-        useState<ScrollInsertPosition>('bottom')
+        useState(/** @type {ScrollInsertPosition} */ ('bottom'))
     const [queryIdentitySettings, setQueryIdentitySettings] =
-        useState<QueryIdentitySettings>(defaultQueryIdentitySettings)
+        useState(defaultQueryIdentitySettings)
     const [newHostname, setNewHostname] = useState('')
     const [newHostnameMode, setNewHostnameMode] =
-        useState<QueryIdentityMode>('include')
-    const [hostnameError, setHostnameError] = useState<string | null>(null)
+        useState(/** @type {QueryIdentityMode} */ ('include'))
+    const [hostnameError, setHostnameError] = useState(/** @type {string | null} */ (null))
 
     useEffect(() => {
         let isMounted = true
@@ -102,10 +114,8 @@ const App = () => {
             setThemePreference(preference)
         })
 
-        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
-            changes,
-            areaName
-        ) => {
+        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
+        const onStorageChange = (changes, areaName) => {
             if (areaName !== 'local') return
 
             const positionChange = changes[MARK_INSERT_POSITION_KEY]
@@ -134,20 +144,23 @@ const App = () => {
         }
     }, [])
 
-    const onThemeChange = useCallback((preference: ThemePreference) => {
+    const onThemeChange = useCallback(/** @param {ThemePreference} preference */ (preference) => {
         setThemePreference(preference)
         void setStoredThemePreference(preference)
     }, [])
 
-    const onMarkInsertPositionChange = useCallback((position: ScrollInsertPosition) => {
-        setMarkInsertPosition(position)
-        void setScrollInsertPosition(position)
-    }, [])
+    const onMarkInsertPositionChange = useCallback(
+        /** @param {ScrollInsertPosition} position */
+        (position) => {
+            setMarkInsertPosition(position)
+            void setScrollInsertPosition(position)
+        },
+        []
+    )
 
     const updateQueryIdentitySettings = useCallback(
-        (
-            updater: (current: QueryIdentitySettings) => QueryIdentitySettings
-        ) => {
+        /** @param {(current: QueryIdentitySettings) => QueryIdentitySettings} updater */
+        (updater) => {
             setQueryIdentitySettings((current) => {
                 const next = updater(current)
                 void setStoredQueryIdentitySettings(next)
@@ -158,21 +171,23 @@ const App = () => {
     )
 
     const onGlobalQueryIdentityModeChange = useCallback(
-        (mode: QueryIdentityMode) => {
+        /** @param {QueryIdentityMode} mode */
+        (mode) => {
             updateQueryIdentitySettings((current) => ({
                 globalMode: mode,
-                perHostMode: Object.entries(current.perHostMode).reduce<Record<string, QueryIdentityMode>>((acc, [hostname, hostMode]) => {
+                perHostMode: Object.entries(current.perHostMode).reduce((acc, [hostname, hostMode]) => {
                     if (hostMode === mode) return acc
                     acc[hostname] = hostMode
                     return acc
-                }, {}),
+                }, /** @type {Record<string, QueryIdentityMode>} */ ({})),
             }))
         },
         [updateQueryIdentitySettings]
     )
 
     const onHostnameModeChange = useCallback(
-        (hostname: string, mode: QueryIdentityMode) => {
+        /** @param {string} hostname @param {QueryIdentityMode} mode */
+        (hostname, mode) => {
             updateQueryIdentitySettings((current) => {
                 const nextPerHostMode = {...current.perHostMode}
 
@@ -192,7 +207,8 @@ const App = () => {
     )
 
     const onRemoveHostnameOverride = useCallback(
-        (hostname: string) => {
+        /** @param {string} hostname */
+        (hostname) => {
             updateQueryIdentitySettings((current) => {
                 const nextPerHostMode = {...current.perHostMode}
                 delete nextPerHostMode[hostname]
@@ -351,7 +367,10 @@ const App = () => {
                             <select
                                 value={newHostnameMode}
                                 onChange={(e) => {
-                                    setNewHostnameMode(e.target.value as QueryIdentityMode)
+                                    const nextMode = e.target.value
+                                    if (nextMode === 'include' || nextMode === 'ignore') {
+                                        setNewHostnameMode(nextMode)
+                                    }
                                 }}
                                 className="settings-select"
                             >
@@ -389,10 +408,10 @@ const App = () => {
                                         <select
                                             value={mode}
                                             onChange={(e) => {
-                                                onHostnameModeChange(
-                                                    hostname,
-                                                    e.target.value as QueryIdentityMode
-                                                )
+                                                const nextMode = e.target.value
+                                                if (nextMode === 'include' || nextMode === 'ignore') {
+                                                    onHostnameModeChange(hostname, nextMode)
+                                                }
                                             }}
                                             className="settings-rule-item__select"
                                         >
@@ -420,4 +439,4 @@ const App = () => {
     )
 }
 
-main()
+void main()

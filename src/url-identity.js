@@ -1,33 +1,41 @@
-import type {QueryIdentityMode, QueryIdentitySettings} from './types'
+// @ts-check
+
+/** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
 
 export const QUERY_IDENTITY_SETTINGS_KEY = 'queryIdentitySettings'
 
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
-const defaultQueryIdentitySettings: QueryIdentitySettings = {
+/** @type {QueryIdentitySettings} */
+const defaultQueryIdentitySettings = {
     globalMode: 'ignore',
     perHostMode: {},
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+const isRecord = (value) =>
     Boolean(value && typeof value === 'object' && !Array.isArray(value))
 
-export const isQueryIdentityMode = (value: unknown): value is QueryIdentityMode =>
+/** @param {unknown} value @returns {value is QueryIdentityMode} */
+export const isQueryIdentityMode = (value) =>
     value === 'ignore' || value === 'include'
 
-const normalizePerHostMode = (value: unknown): Record<string, QueryIdentityMode> => {
+/** @param {unknown} value @returns {Record<string, QueryIdentityMode>} */
+const normalizePerHostMode = (value) => {
     if (!isRecord(value)) return {}
 
-    return Object.entries(value).reduce<Record<string, QueryIdentityMode>>((acc, [hostname, mode]) => {
+    return Object.entries(value).reduce((acc, [hostname, mode]) => {
         const normalizedHostname = hostname.trim().toLowerCase()
         if (!normalizedHostname || !isQueryIdentityMode(mode)) return acc
 
         acc[normalizedHostname] = mode
         return acc
-    }, {})
+    }, /** @type {Record<string, QueryIdentityMode>} */ ({}))
 }
 
-export const normalizeQueryIdentitySettings = (value: unknown): QueryIdentitySettings => {
+/** @param {unknown} value @returns {QueryIdentitySettings} */
+export const normalizeQueryIdentitySettings = (value) => {
     if (!isRecord(value)) {
         return {
             ...defaultQueryIdentitySettings,
@@ -47,7 +55,8 @@ export const normalizeQueryIdentitySettings = (value: unknown): QueryIdentitySet
     }
 }
 
-const buildCanonicalSearch = (searchParams: URLSearchParams): string => {
+/** @param {URLSearchParams} searchParams @returns {string} */
+const buildCanonicalSearch = (searchParams) => {
     const sortedEntries = [...searchParams.entries()].sort(
         ([leftKey, leftValue], [rightKey, rightValue]) => {
             const keyComparison = leftKey.localeCompare(rightKey)
@@ -67,10 +76,8 @@ const buildCanonicalSearch = (searchParams: URLSearchParams): string => {
     return normalizedSearch ? `?${normalizedSearch}` : ''
 }
 
-export const resolveQueryIdentityMode = (
-    settings: QueryIdentitySettings,
-    hostname: string
-): QueryIdentityMode => {
+/** @param {QueryIdentitySettings} settings @param {string} hostname @returns {QueryIdentityMode} */
+export const resolveQueryIdentityMode = (settings, hostname) => {
     const normalizedHostname = hostname.trim().toLowerCase()
 
     if (normalizedHostname && hasOwnProperty.call(settings.perHostMode, normalizedHostname)) {
@@ -80,7 +87,8 @@ export const resolveQueryIdentityMode = (
     return settings.globalMode
 }
 
-export const buildPageStorageKey = (url: URL, mode: QueryIdentityMode): string => {
+/** @param {URL} url @param {QueryIdentityMode} mode @returns {string} */
+export const buildPageStorageKey = (url, mode) => {
     const baseURL = url.hostname.concat(url.pathname)
 
     if (mode === 'ignore') return baseURL
@@ -89,22 +97,20 @@ export const buildPageStorageKey = (url: URL, mode: QueryIdentityMode): string =
     return canonicalSearch ? baseURL.concat(canonicalSearch) : baseURL
 }
 
-export const resolvePageStorageKey = (
-    url: URL,
-    settings: QueryIdentitySettings
-): string => {
+/** @param {URL} url @param {QueryIdentitySettings} settings @returns {string} */
+export const resolvePageStorageKey = (url, settings) => {
     const mode = resolveQueryIdentityMode(settings, url.hostname)
     return buildPageStorageKey(url, mode)
 }
 
-export const getQueryIdentitySettings = async (): Promise<QueryIdentitySettings> => {
+/** @returns {Promise<QueryIdentitySettings>} */
+export const getQueryIdentitySettings = async () => {
     const result = await chrome.storage.local.get(QUERY_IDENTITY_SETTINGS_KEY)
     return normalizeQueryIdentitySettings(result[QUERY_IDENTITY_SETTINGS_KEY])
 }
 
-export const setQueryIdentitySettings = async (
-    settings: QueryIdentitySettings
-): Promise<void> => {
+/** @param {QueryIdentitySettings} settings @returns {Promise<void>} */
+export const setQueryIdentitySettings = async (settings) => {
     await chrome.storage.local.set({
         [QUERY_IDENTITY_SETTINGS_KEY]: normalizeQueryIdentitySettings(settings),
     })

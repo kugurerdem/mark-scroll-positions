@@ -1,15 +1,15 @@
-import {useState, useEffect, useRef} from 'react'
-import {Icon} from './icons'
+// @ts-check
 
-import type {
-    ScrollDetails,
-    PageData,
-    TextInputProps,
-    ButtonProps,
-    GenericScrollProps,
-    SortableScrollListProps,
-    UsePageDataStateReturn,
-} from './types'
+import {useState, useEffect, useRef} from 'react'
+import {Icon} from './icons.jsx'
+
+/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./types.js').PageData} PageData */
+/** @typedef {import('./types.js').TextInputProps} TextInputProps */
+/** @typedef {import('./types.js').ButtonProps} ButtonProps */
+/** @typedef {import('./types.js').GenericScrollProps} GenericScrollProps */
+/** @typedef {import('./types.js').SortableScrollListProps} SortableScrollListProps */
+/** @typedef {import('./types.js').UsePageDataStateReturn} UsePageDataStateReturn */
 
 const {assign} = Object
 const DRAG_THRESHOLD_PX = 4
@@ -19,7 +19,8 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
     year: 'numeric',
 })
 
-const isInteractiveTarget = (target: EventTarget | null): boolean => {
+/** @param {EventTarget | null} target @returns {boolean} */
+const isInteractiveTarget = (target) => {
     if (!(target instanceof HTMLElement)) return false
 
     return Boolean(
@@ -29,6 +30,7 @@ const isInteractiveTarget = (target: EventTarget | null): boolean => {
     )
 }
 
+/** @param {TextInputProps} props */
 export const TextInput = ({
     label,
     value,
@@ -36,36 +38,36 @@ export const TextInput = ({
     onBlur = () => {},
     type = 'input',
     className,
-}: TextInputProps) => {
+}) => {
     const [currentText, setCurrentText] = useState(value)
     const [savedText, setSavedText] = useState(value)
 
-    const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
+    /** @param {import('react').ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e */
+    const handleInputChange = (e) => {
         setCurrentText(e.target.value)
         onChange(e.target.value)
     }
 
     const handleBlur = () => {
-        if (savedText != currentText) onBlur(currentText)
+        if (savedText !== currentText) onBlur(currentText)
         setSavedText(currentText)
     }
 
-    const handleKeyDown = (
-        e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
-        if (e.key == 'Enter') (e.target as HTMLElement).blur()
+    /** @param {import('react').KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>} e */
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            /** @type {HTMLElement} */ (e.target).blur()
+        }
     }
 
     const inputClasses = 'text-field__control'
 
     const props = {
-        type: 'text' as const,
+        type: 'text',
         value: currentText,
         onChange: handleInputChange,
         onBlur: handleBlur,
-        onKeyDown: type == 'input' ? handleKeyDown : undefined,
+        onKeyDown: type === 'input' ? handleKeyDown : undefined,
         className: inputClasses,
         draggable: false,
     }
@@ -73,12 +75,13 @@ export const TextInput = ({
     return (
         <div className={`text-field ${className || ''}`.trim()}>
             {label && <label className="text-field__label"> {label} </label>}
-            {type == 'input' ? <input {...props} /> : <textarea {...props} />}
+            {type === 'input' ? <input {...props} /> : <textarea {...props} />}
         </div>
     )
 }
 
-export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
+/** @param {ButtonProps} props */
+export const Button = ({text, icon, onClick, ...buttonProps}) => {
     return (
         <button
             {...buttonProps}
@@ -91,7 +94,8 @@ export const Button = ({text, icon, onClick, ...buttonProps}: ButtonProps) => {
     )
 }
 
-const CircularProgress = ({percentage}: {percentage: number}) => {
+/** @param {{percentage: number}} props */
+const CircularProgress = ({percentage}) => {
     const size = 26
     const strokeWidth = 2.5
     const radius = (size - strokeWidth) / 2
@@ -124,32 +128,37 @@ const CircularProgress = ({percentage}: {percentage: number}) => {
     )
 }
 
+/**
+ * @typedef {object} PointerDragState
+ * @property {number | null} pointerId
+ * @property {string | null} originId
+ * @property {number} startX
+ * @property {number} startY
+ * @property {boolean} active
+ * @property {string | null} dragOverId
+ */
+
+/** @param {SortableScrollListProps} props */
 export const SortableScrollList = ({
     children,
     pageData,
     setPageData,
     interactionMode = 'native',
-}: SortableScrollListProps) => {
-    const [draggedId, setDraggedId] = useState<string | null>(null)
-    const [dragOverId, setDragOverId] = useState<string | null>(null)
+}) => {
+    const [draggedId, setDraggedId] = useState(/** @type {string | null} */ (null))
+    const [dragOverId, setDragOverId] = useState(/** @type {string | null} */ (null))
     const [dragOffset, setDragOffset] = useState({x: 0, y: 0})
-    const pointerDragState = useRef<{
-        pointerId: number | null
-        originId: string | null
-        startX: number
-        startY: number
-        active: boolean
-        dragOverId: string | null
-    }>({
+    const pointerDragState = useRef(/** @type {PointerDragState} */ ({
         pointerId: null,
         originId: null,
         startX: 0,
         startY: 0,
         active: false,
         dragOverId: null,
-    })
+    }))
 
-    const moveScroll = (sourceUuid: string, targetUuid: string) => {
+    /** @param {string} sourceUuid @param {string} targetUuid */
+    const moveScroll = (sourceUuid, targetUuid) => {
         if (sourceUuid === targetUuid) return
 
         const scrolls = [...pageData.scrolls]
@@ -159,11 +168,13 @@ export const SortableScrollList = ({
         if (dragIdx < 0 || dropIdx < 0) return
 
         const [removed] = scrolls.splice(dragIdx, 1)
+        if (!removed) return
         scrolls.splice(dropIdx, 0, removed)
         setPageData({...pageData, scrolls})
     }
 
-    const handleDragStart = (e: React.DragEvent, uuid: string) => {
+    /** @param {import('react').DragEvent<HTMLDivElement>} e @param {string} uuid */
+    const handleDragStart = (e, uuid) => {
         if (isInteractiveTarget(e.target)) {
             e.preventDefault()
             return
@@ -173,7 +184,8 @@ export const SortableScrollList = ({
         e.dataTransfer.effectAllowed = 'move'
     }
 
-    const handleDragOver = (e: React.DragEvent, uuid: string) => {
+    /** @param {import('react').DragEvent<HTMLDivElement>} e @param {string} uuid */
+    const handleDragOver = (e, uuid) => {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
         if (uuid !== draggedId) {
@@ -185,7 +197,8 @@ export const SortableScrollList = ({
         setDragOverId(null)
     }
 
-    const handleDrop = (targetUuid: string) => {
+    /** @param {string} targetUuid */
+    const handleDrop = (targetUuid) => {
         if (draggedId) moveScroll(draggedId, targetUuid)
         setDraggedId(null)
         setDragOverId(null)
@@ -196,12 +209,14 @@ export const SortableScrollList = ({
         setDragOverId(null)
     }
 
-    const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+    /** @param {import('react').PointerEvent<HTMLDivElement>} e */
+    const handlePointerDownCapture = (e) => {
         if (interactionMode === 'pointer') return
         e.currentTarget.draggable = !isInteractiveTarget(e.target)
     }
 
-    const restoreDraggable = (e: React.PointerEvent<HTMLDivElement>) => {
+    /** @param {import('react').PointerEvent<HTMLDivElement>} e */
+    const restoreDraggable = (e) => {
         if (interactionMode === 'pointer') return
         e.currentTarget.draggable = true
     }
@@ -220,17 +235,19 @@ export const SortableScrollList = ({
         setDragOffset({x: 0, y: 0})
     }
 
-    const resolveDropTarget = (clientX: number, clientY: number): string | null => {
+    /** @param {number} clientX @param {number} clientY @returns {string | null} */
+    const resolveDropTarget = (clientX, clientY) => {
         const element = document.elementFromPoint(clientX, clientY)
         if (!(element instanceof HTMLElement)) return null
 
-        return element.closest<HTMLElement>('[data-scroll-id]')?.dataset.scrollId ?? null
+        const dropTarget = element.closest('[data-scroll-id]')
+        return dropTarget instanceof HTMLElement
+            ? dropTarget.dataset.scrollId ?? null
+            : null
     }
 
-    const handlePointerDragStart = (
-        e: React.PointerEvent<HTMLDivElement>,
-        uuid: string
-    ) => {
+    /** @param {import('react').PointerEvent<HTMLDivElement>} e @param {string} uuid */
+    const handlePointerDragStart = (e, uuid) => {
         if (interactionMode !== 'pointer') {
             handlePointerDownCapture(e)
             return
@@ -250,7 +267,8 @@ export const SortableScrollList = ({
         e.currentTarget.setPointerCapture(e.pointerId)
     }
 
-    const handlePointerDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    /** @param {import('react').PointerEvent<HTMLDivElement>} e */
+    const handlePointerDragMove = (e) => {
         if (interactionMode !== 'pointer') return
 
         const state = pointerDragState.current
@@ -284,7 +302,8 @@ export const SortableScrollList = ({
         setDragOverId(resolvedDragOverId)
     }
 
-    const handlePointerDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    /** @param {import('react').PointerEvent<HTMLDivElement>} e */
+    const handlePointerDragEnd = (e) => {
         if (interactionMode !== 'pointer') {
             restoreDraggable(e)
             return
@@ -315,6 +334,13 @@ export const SortableScrollList = ({
                             transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(1.02)`,
                         }
                         : undefined
+                const matchingChild = children.find(
+                    (child) =>
+                        typeof child === 'object' &&
+                        child !== null &&
+                        'key' in child &&
+                        child.key === scroll.uuid
+                )
 
                 return (
                     <div
@@ -348,7 +374,7 @@ export const SortableScrollList = ({
                         }${isDragOver ? ' scroll-list__item-shell--drag-over' : ''}`}
                         style={shellStyle}
                     >
-                        {children.find((child: any) => child.key === scroll.uuid)}
+                        {matchingChild ?? null}
                     </div>
                 )
             })}
@@ -356,13 +382,14 @@ export const SortableScrollList = ({
     )
 }
 
+/** @param {GenericScrollProps} props */
 export const GenericScroll = ({
     scrollDetails,
     onJump,
     pageData,
     setPageData,
     patchScroll,
-}: GenericScrollProps) => {
+}) => {
     const {name, note, dateISO, uuid} = scrollDetails
     const hasNote = note.trim().length > 0
 
@@ -373,26 +400,32 @@ export const GenericScroll = ({
     const handleAddNote = () => {
         setDisplayNote(true)
     }
-    const onNoteChange = (note: string) => {
-        patchScroll(uuid, {note})
+
+    /** @param {string} nextNote */
+    const onNoteChange = (nextNote) => {
+        patchScroll(uuid, {note: nextNote})
     }
+
     const handleNameClick = () => {
         setEditingName(true)
     }
+
     const handleNameBlur = () => {
         setEditingName(false)
         if (nameValue !== name) {
             patchScroll(uuid, {name: nameValue})
         }
     }
-    const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+
+    /** @param {import('react').KeyboardEvent<HTMLInputElement>} e */
+    const handleNameKeyDown = (e) => {
         if (e.key === 'Enter') {
-            (e.target as HTMLInputElement).blur()
+            /** @type {HTMLInputElement} */ (e.target).blur()
         }
     }
 
     const onRemove = () => {
-        const scrolls = pageData.scrolls.filter((s) => s.uuid != uuid)
+        const scrolls = pageData.scrolls.filter((s) => s.uuid !== uuid)
         setPageData({...pageData, scrolls})
     }
 
@@ -446,7 +479,10 @@ export const GenericScroll = ({
                     >
                         <Icon icon="play" className="icon icon--xs" />
                     </button>
-                    <Button onClick={() => setExpanded(!expanded)} icon={expanded ? 'angleUp' : 'angleDown'} />
+                    <Button
+                        onClick={() => setExpanded(!expanded)}
+                        icon={expanded ? 'angleUp' : 'angleDown'}
+                    />
                 </span>
             </div>
             {expanded && (
@@ -474,16 +510,22 @@ export const GenericScroll = ({
     )
 }
 
-export const usePageDataState = (absoluteURL: string): UsePageDataStateReturn => {
-    const [pageData, setPageData] = useState<PageData>({scrolls: [], title: null})
+/** @param {string} absoluteURL @returns {UsePageDataStateReturn} */
+export const usePageDataState = (absoluteURL) => {
+    const [pageData, setPageData] = useState(/** @type {PageData} */ ({
+        scrolls: [],
+        title: null,
+    }))
 
-    const customSetPageData = (data: PageData) => {
+    /** @param {PageData} data */
+    const customSetPageData = (data) => {
         chrome.storage.local.set({[absoluteURL]: data}).then(() => setPageData(data))
     }
 
-    const patchScroll = (uuid: string, patch: Partial<ScrollDetails>) => {
+    /** @param {string} uuid @param {Partial<ScrollDetails>} patch */
+    const patchScroll = (uuid, patch) => {
         const scrolls = pageData.scrolls.map((s) => {
-            if (s.uuid == uuid) assign(s, patch)
+            if (s.uuid === uuid) assign(s, patch)
             return s
         })
 
@@ -491,24 +533,23 @@ export const usePageDataState = (absoluteURL: string): UsePageDataStateReturn =>
     }
 
     useEffect(() => {
-        const applyPageData = (data: PageData | undefined) => {
+        /** @param {PageData | undefined} data */
+        const applyPageData = (data) => {
             setPageData(data ?? {scrolls: [], title: null})
         }
 
         chrome.storage.local.get(absoluteURL).then((result) => {
-            applyPageData(result[absoluteURL] as PageData | undefined)
+            applyPageData(/** @type {PageData | undefined} */ (result[absoluteURL]))
         })
 
-        const onStorageChange: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
-            changes,
-            areaName
-        ) => {
+        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
+        const onStorageChange = (changes, areaName) => {
             if (areaName !== 'local') return
 
             const changed = changes[absoluteURL]
             if (!changed) return
 
-            applyPageData(changed.newValue as PageData | undefined)
+            applyPageData(/** @type {PageData | undefined} */ (changed.newValue))
         }
 
         chrome.storage.onChanged.addListener(onStorageChange)
@@ -521,7 +562,8 @@ export const usePageDataState = (absoluteURL: string): UsePageDataStateReturn =>
     return [pageData, customSetPageData, patchScroll]
 }
 
-export const calculateScrollPercentage = (d: ScrollDetails): number => {
+/** @param {ScrollDetails} d @returns {number} */
+export const calculateScrollPercentage = (d) => {
     if (d.contentHeight <= 0) return 0
 
     const rawPercentage =
