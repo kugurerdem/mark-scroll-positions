@@ -1,13 +1,12 @@
 import {createRoot} from 'react-dom/client'
 import {useState, useEffect} from 'react'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faAngleUp, faAngleDown, faTrashCan, faBookBookmark, faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons'
 
 import {
     GenericScroll,
     SortableScrollList,
     usePageDataState,
 } from './common'
+import {Icon} from './icons'
 import {initializeTheme} from './theme'
 
 import type {PageData, PageDetailsByURL, ScrollDetails} from './types'
@@ -163,7 +162,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                 <div className="manage-page__header-inner">
                     <div className="manage-page__hero">
                         <div className="manage-page__hero-icon">
-                            <FontAwesomeIcon icon={faBookBookmark} className="icon icon--lg icon--inverse" />
+                            <Icon icon="bookBookmark" className="icon icon--lg icon--inverse" />
                         </div>
                         <div>
                             <h1 className="manage-page__title">
@@ -176,10 +175,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                     </div>
 
                     <div className="manage-search">
-                        <FontAwesomeIcon
-                            icon={faMagnifyingGlass}
-                            className="manage-search__icon icon icon--sm"
-                        />
+                        <Icon icon="magnifyingGlass" className="manage-search__icon icon icon--sm" />
                         <input
                             type="text"
                             placeholder="Search pages, marks, notes..."
@@ -227,7 +223,7 @@ const App = ({pageDetailsByURL}: AppProps) => {
                 {filteredEntries.length === 0 ? (
                     <div className="manage-empty-state">
                         <div className="manage-empty-state__icon-wrap">
-                            <FontAwesomeIcon icon={faBookBookmark} className="icon icon--xl manage-empty-state__icon" />
+                            <Icon icon="bookBookmark" className="icon icon--xl manage-empty-state__icon" />
                         </div>
                         <p className="manage-empty-state__title">
                             {searchText ? 'No marks match your search' : 'No saved marks yet'}
@@ -410,13 +406,13 @@ const Page = ({url, setPagesByURL, onMissingPermission}: PageProps) => {
                         onClick={handleExpand}
                         className="icon-button page-card__toggle"
                     >
-                        <FontAwesomeIcon icon={expand ? faAngleUp : faAngleDown} className="icon icon--sm" />
+                        <Icon icon={expand ? 'angleUp' : 'angleDown'} className="icon icon--sm" />
                     </button>
                     <button
                         onClick={handlePageDelete}
                         className="icon-button page-card__delete"
                     >
-                        <FontAwesomeIcon icon={faTrashCan} className="icon icon--xs" />
+                        <Icon icon="trashCan" className="icon icon--xs" />
                     </button>
                 </div>
             </div>

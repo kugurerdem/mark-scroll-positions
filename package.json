@@ -19,12 +19,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "^7.1.0",
-    "@fortawesome/free-solid-svg-icons": "^7.1.0",
-    "@fortawesome/react-fontawesome": "^3.2.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "vite-plugin-static-copy": "^3.1.2"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.1",
@@ -33,7 +29,6 @@
     "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^8.53.0",
     "eslint-plugin-react": "^7.33.2",
-    "process": "^0.11.10",
     "release-it": "^19.2.4",
     "typescript": "^5.8.3",
     "vite": "^7.1.11",

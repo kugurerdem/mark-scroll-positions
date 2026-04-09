@@ -1,0 +1,102 @@
+import type {SVGProps} from 'react'
+
+export type IconName =
+    | 'angleDown'
+    | 'angleUp'
+    | 'bookBookmark'
+    | 'bookmark'
+    | 'circleInfo'
+    | 'gear'
+    | 'magnifyingGlass'
+    | 'noteSticky'
+    | 'palette'
+    | 'play'
+    | 'trashCan'
+
+interface IconDefinition {
+    viewBox: string
+    path: string
+}
+
+const iconDefinitions: Record<IconName, IconDefinition> = {
+    angleDown: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/angle-down.svg
+        viewBox: '0 0 384 512',
+        path: 'M169.4 374.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 306.7 54.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l160 160z',
+    },
+    angleUp: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/angle-up.svg
+        viewBox: '0 0 384 512',
+        path: 'M169.4 137.4c12.5-12.5 32.8-12.5 45.3 0l160 160c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L192 205.3 54.6 342.6c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3l160-160z',
+    },
+    bookBookmark: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/book-bookmark.svg
+        viewBox: '0 0 448 512',
+        path: 'M96 512l320 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l0-66.7c18.6-6.6 32-24.4 32-45.3l0-288c0-26.5-21.5-48-48-48l-48 0 0 169.4c0 12.5-10.1 22.6-22.6 22.6-6 0-11.8-2.4-16-6.6L272 144 230.6 185.4c-4.2 4.2-10 6.6-16 6.6-12.5 0-22.6-10.1-22.6-22.6L192 0 96 0C43 0 0 43 0 96L0 416c0 53 43 96 96 96zM64 416c0-17.7 14.3-32 32-32l256 0 0 64-256 0c-17.7 0-32-14.3-32-32z',
+    },
+    bookmark: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/bookmark.svg
+        viewBox: '0 0 384 512',
+        path: 'M64 0C28.7 0 0 28.7 0 64L0 480c0 11.5 6.2 22.2 16.2 27.8s22.3 5.5 32.2-.4L192 421.3 335.5 507.4c9.9 5.9 22.2 6.1 32.2 .4S384 491.5 384 480l0-416c0-35.3-28.7-64-64-64L64 0z',
+    },
+    circleInfo: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/circle-info.svg
+        viewBox: '0 0 512 512',
+        path: 'M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM224 160a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm-8 64l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24z',
+    },
+    gear: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/gear.svg
+        viewBox: '0 0 512 512',
+        path: 'M195.1 9.5C198.1-5.3 211.2-16 226.4-16l59.8 0c15.2 0 28.3 10.7 31.3 25.5L332 79.5c14.1 6 27.3 13.7 39.3 22.8l67.8-22.5c14.4-4.8 30.2 1.2 37.8 14.4l29.9 51.8c7.6 13.2 4.9 29.8-6.5 39.9L447 233.3c.9 7.4 1.3 15 1.3 22.7s-.5 15.3-1.3 22.7l53.4 47.5c11.4 10.1 14 26.8 6.5 39.9l-29.9 51.8c-7.6 13.1-23.4 19.2-37.8 14.4l-67.8-22.5c-12.1 9.1-25.3 16.7-39.3 22.8l-14.4 69.9c-3.1 14.9-16.2 25.5-31.3 25.5l-59.8 0c-15.2 0-28.3-10.7-31.3-25.5l-14.4-69.9c-14.1-6-27.2-13.7-39.3-22.8L73.5 432.3c-14.4 4.8-30.2-1.2-37.8-14.4L5.8 366.1c-7.6-13.2-4.9-29.8 6.5-39.9l53.4-47.5c-.9-7.4-1.3-15-1.3-22.7s.5-15.3 1.3-22.7L12.3 185.8c-11.4-10.1-14-26.8-6.5-39.9L35.7 94.1c7.6-13.2 23.4-19.2 37.8-14.4l67.8 22.5c12.1-9.1 25.3-16.7 39.3-22.8L195.1 9.5zM256.3 336a80 80 0 1 0 -.6-160 80 80 0 1 0 .6 160z',
+    },
+    magnifyingGlass: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/magnifying-glass.svg
+        viewBox: '0 0 512 512',
+        path: 'M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376C296.3 401.1 253.9 416 208 416 93.1 416 0 322.9 0 208S93.1 0 208 0 416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z',
+    },
+    noteSticky: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/note-sticky.svg
+        viewBox: '0 0 448 512',
+        path: 'M64 480c-35.3 0-64-28.7-64-64L0 96C0 60.7 28.7 32 64 32l320 0c35.3 0 64 28.7 64 64l0 213.5c0 17-6.7 33.3-18.7 45.3L322.7 461.3c-12 12-28.3 18.7-45.3 18.7L64 480zM389.5 304L296 304c-13.3 0-24 10.7-24 24l0 93.5 117.5-117.5z',
+    },
+    palette: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/palette.svg
+        viewBox: '0 0 512 512',
+        path: 'M512 256c0 .9 0 1.8 0 2.7-.4 36.5-33.6 61.3-70.1 61.3L344 320c-26.5 0-48 21.5-48 48 0 3.4 .4 6.7 1 9.9 2.1 10.2 6.5 20 10.8 29.9 6.1 13.8 12.1 27.5 12.1 42 0 31.8-21.6 60.7-53.4 62-3.5 .1-7 .2-10.6 .2-141.4 0-256-114.6-256-256S114.6 0 256 0 512 114.6 512 256zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm0-96a32 32 0 1 0 0-64 32 32 0 1 0 0 64zM288 96a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm96 96a32 32 0 1 0 0-64 32 32 0 1 0 0 64z',
+    },
+    play: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/play.svg
+        viewBox: '0 0 448 512',
+        path: 'M91.2 36.9c-12.4-6.8-27.4-6.5-39.6 .7S32 57.9 32 72l0 368c0 14.1 7.5 27.2 19.6 34.4s27.2 7.5 39.6 .7l336-184c12.8-7 20.8-20.5 20.8-35.1s-8-28.1-20.8-35.1l-336-184z',
+    },
+    trashCan: {
+        // Source: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/svgs/solid/trash-can.svg
+        viewBox: '0 0 448 512',
+        path: 'M136.7 5.9C141.1-7.2 153.3-16 167.1-16l113.9 0c13.8 0 26 8.8 30.4 21.9L320 32 416 32c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 96C14.3 96 0 81.7 0 64S14.3 32 32 32l96 0 8.7-26.1zM32 144l384 0 0 304c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64l0-304zm88 64c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24z',
+    },
+}
+
+export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'children' | 'viewBox'> {
+    icon: IconName
+    title?: string
+}
+
+export const Icon = ({icon, title, ...props}: IconProps) => {
+    const definition = iconDefinitions[icon]
+    const labelled = props['aria-label'] !== undefined || title !== undefined
+
+    return (
+        <svg
+            {...props}
+            viewBox={definition.viewBox}
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            focusable="false"
+            aria-hidden={labelled ? undefined : true}
+            role={labelled ? 'img' : undefined}
+        >
+            {title && <title>{title}</title>}
+            <path fill="currentColor" d={definition.path} />
+        </svg>
+    )
+}
