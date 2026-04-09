@@ -444,12 +444,21 @@ textarea.text-field__control {
 }
 
 .scroll-list__item-shell {
+  position: relative;
   transition: opacity 0.15s ease, transform 0.15s ease, outline-color 0.15s ease;
+  will-change: transform;
 }
 
 .scroll-list__item-shell--dragged {
   opacity: 0.4;
   transform: scale(0.97);
+}
+
+.scroll-list__item-shell--pointer-dragged {
+  z-index: 10;
+  opacity: 0.96;
+  pointer-events: none;
+  transition: none;
 }
 
 .scroll-list__item-shell--drag-over {

@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react'
+import {useState, useEffect, useRef} from 'react'
 import {format} from 'date-fns'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlay, faAngleUp, faAngleDown, faTrashCan, faNoteSticky} from '@fortawesome/free-solid-svg-icons'
@@ -14,6 +14,7 @@ import type {
 } from './types'
 
 const {assign} = Object
+const DRAG_THRESHOLD_PX = 4
 
 const isInteractiveTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false
@@ -124,9 +125,40 @@ export const SortableScrollList = ({
     children,
     pageData,
     setPageData,
+    interactionMode = 'native',
 }: SortableScrollListProps) => {
     const [draggedId, setDraggedId] = useState<string | null>(null)
     const [dragOverId, setDragOverId] = useState<string | null>(null)
+    const [dragOffset, setDragOffset] = useState({x: 0, y: 0})
+    const pointerDragState = useRef<{
+        pointerId: number | null
+        originId: string | null
+        startX: number
+        startY: number
+        active: boolean
+        dragOverId: string | null
+    }>({
+        pointerId: null,
+        originId: null,
+        startX: 0,
+        startY: 0,
+        active: false,
+        dragOverId: null,
+    })
+
+    const moveScroll = (sourceUuid: string, targetUuid: string) => {
+        if (sourceUuid === targetUuid) return
+
+        const scrolls = [...pageData.scrolls]
+        const dragIdx = scrolls.findIndex((s) => s.uuid === sourceUuid)
+        const dropIdx = scrolls.findIndex((s) => s.uuid === targetUuid)
+
+        if (dragIdx < 0 || dropIdx < 0) return
+
+        const [removed] = scrolls.splice(dragIdx, 1)
+        scrolls.splice(dropIdx, 0, removed)
+        setPageData({...pageData, scrolls})
+    }
 
     const handleDragStart = (e: React.DragEvent, uuid: string) => {
         if (isInteractiveTarget(e.target)) {
@@ -151,14 +183,7 @@ export const SortableScrollList = ({
     }
 
     const handleDrop = (targetUuid: string) => {
-        if (draggedId && draggedId !== targetUuid) {
-            const scrolls = [...pageData.scrolls]
-            const dragIdx = scrolls.findIndex((s) => s.uuid === draggedId)
-            const dropIdx = scrolls.findIndex((s) => s.uuid === targetUuid)
-            const [removed] = scrolls.splice(dragIdx, 1)
-            scrolls.splice(dropIdx, 0, removed)
-            setPageData({...pageData, scrolls})
-        }
+        if (draggedId) moveScroll(draggedId, targetUuid)
         setDraggedId(null)
         setDragOverId(null)
     }
@@ -169,11 +194,111 @@ export const SortableScrollList = ({
     }
 
     const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (interactionMode === 'pointer') return
         e.currentTarget.draggable = !isInteractiveTarget(e.target)
     }
 
     const restoreDraggable = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (interactionMode === 'pointer') return
         e.currentTarget.draggable = true
+    }
+
+    const resetPointerDrag = () => {
+        pointerDragState.current = {
+            pointerId: null,
+            originId: null,
+            startX: 0,
+            startY: 0,
+            active: false,
+            dragOverId: null,
+        }
+        setDraggedId(null)
+        setDragOverId(null)
+        setDragOffset({x: 0, y: 0})
+    }
+
+    const resolveDropTarget = (clientX: number, clientY: number): string | null => {
+        const element = document.elementFromPoint(clientX, clientY)
+        if (!(element instanceof HTMLElement)) return null
+
+        return element.closest<HTMLElement>('[data-scroll-id]')?.dataset.scrollId ?? null
+    }
+
+    const handlePointerDragStart = (
+        e: React.PointerEvent<HTMLDivElement>,
+        uuid: string
+    ) => {
+        if (interactionMode !== 'pointer') {
+            handlePointerDownCapture(e)
+            return
+        }
+
+        if (isInteractiveTarget(e.target)) return
+
+        pointerDragState.current = {
+            pointerId: e.pointerId,
+            originId: uuid,
+            startX: e.clientX,
+            startY: e.clientY,
+            active: false,
+            dragOverId: null,
+        }
+
+        e.currentTarget.setPointerCapture(e.pointerId)
+    }
+
+    const handlePointerDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (interactionMode !== 'pointer') return
+
+        const state = pointerDragState.current
+        if (state.pointerId !== e.pointerId || !state.originId) return
+
+        const movedEnough =
+            Math.abs(e.clientX - state.startX) >= DRAG_THRESHOLD_PX ||
+            Math.abs(e.clientY - state.startY) >= DRAG_THRESHOLD_PX
+
+        if (!state.active) {
+            if (!movedEnough) return
+
+            state.active = true
+            setDraggedId(state.originId)
+        }
+
+        e.preventDefault()
+
+        setDragOffset({
+            x: e.clientX - state.startX,
+            y: e.clientY - state.startY,
+        })
+
+        const nextDragOverId = resolveDropTarget(e.clientX, e.clientY)
+        const resolvedDragOverId =
+            nextDragOverId && nextDragOverId !== state.originId
+                ? nextDragOverId
+                : null
+
+        state.dragOverId = resolvedDragOverId
+        setDragOverId(resolvedDragOverId)
+    }
+
+    const handlePointerDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (interactionMode !== 'pointer') {
+            restoreDraggable(e)
+            return
+        }
+
+        const state = pointerDragState.current
+        if (state.pointerId !== e.pointerId) return
+
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId)
+        }
+
+        if (state.active && state.originId && state.dragOverId) {
+            moveScroll(state.originId, state.dragOverId)
+        }
+
+        resetPointerDrag()
     }
 
     return (
@@ -181,22 +306,44 @@ export const SortableScrollList = ({
             {pageData.scrolls.map((scroll) => {
                 const isDragged = scroll.uuid === draggedId
                 const isDragOver = scroll.uuid === dragOverId
+                const shellStyle =
+                    interactionMode === 'pointer' && isDragged
+                        ? {
+                            transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) scale(1.02)`,
+                        }
+                        : undefined
 
                 return (
                     <div
                         key={scroll.uuid}
-                        draggable
-                        onPointerDownCapture={handlePointerDownCapture}
-                        onPointerUpCapture={restoreDraggable}
-                        onPointerCancelCapture={restoreDraggable}
-                        onDragStart={(e) => handleDragStart(e, scroll.uuid)}
-                        onDragOver={(e) => handleDragOver(e, scroll.uuid)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={() => handleDrop(scroll.uuid)}
-                        onDragEnd={handleDragEnd}
+                        data-scroll-id={scroll.uuid}
+                        draggable={interactionMode === 'native'}
+                        onPointerDownCapture={(e) => handlePointerDragStart(e, scroll.uuid)}
+                        onPointerMoveCapture={handlePointerDragMove}
+                        onPointerUpCapture={handlePointerDragEnd}
+                        onPointerCancelCapture={handlePointerDragEnd}
+                        onDragStart={interactionMode === 'native'
+                            ? (e) => handleDragStart(e, scroll.uuid)
+                            : undefined}
+                        onDragOver={interactionMode === 'native'
+                            ? (e) => handleDragOver(e, scroll.uuid)
+                            : undefined}
+                        onDragLeave={interactionMode === 'native'
+                            ? handleDragLeave
+                            : undefined}
+                        onDrop={interactionMode === 'native'
+                            ? () => handleDrop(scroll.uuid)
+                            : undefined}
+                        onDragEnd={interactionMode === 'native'
+                            ? handleDragEnd
+                            : undefined}
                         className={`scroll-list__item-shell${
                             isDragged ? ' scroll-list__item-shell--dragged' : ''
+                        }${interactionMode === 'pointer' && isDragged
+                            ? ' scroll-list__item-shell--pointer-dragged'
+                            : ''
                         }${isDragOver ? ' scroll-list__item-shell--drag-over' : ''}`}
+                        style={shellStyle}
                     >
                         {children.find((child: any) => child.key === scroll.uuid)}
                     </div>
