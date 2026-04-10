@@ -8,7 +8,7 @@ export const QUERY_IDENTITY_SETTINGS_KEY = 'queryIdentitySettings'
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
 /** @type {QueryIdentitySettings} */
-const defaultQueryIdentitySettings = {
+export const defaultQueryIdentitySettings = {
     globalMode: 'ignore',
     perHostMode: {},
 }
@@ -20,6 +20,10 @@ const isRecord = (value) =>
 /** @param {unknown} value @returns {value is QueryIdentityMode} */
 export const isQueryIdentityMode = (value) =>
     value === 'ignore' || value === 'include'
+
+/** @param {unknown} value @returns {QueryIdentityMode | null} */
+export const parseQueryIdentityMode = (value) =>
+    isQueryIdentityMode(value) ? value : null
 
 /** @param {unknown} value @returns {Record<string, QueryIdentityMode>} */
 const normalizePerHostMode = (value) => {
@@ -55,6 +59,12 @@ export const normalizeQueryIdentitySettings = (value) => {
     }
 }
 
+/** @param {string} hostname @returns {string | null} */
+const normalizeHostname = (hostname) => {
+    const normalizedHostname = hostname.trim().toLowerCase()
+    return normalizedHostname || null
+}
+
 /** @param {URLSearchParams} searchParams @returns {string} */
 const buildCanonicalSearch = (searchParams) => {
     const sortedEntries = [...searchParams.entries()].sort(
@@ -78,13 +88,76 @@ const buildCanonicalSearch = (searchParams) => {
 
 /** @param {QueryIdentitySettings} settings @param {string} hostname @returns {QueryIdentityMode} */
 export const resolveQueryIdentityMode = (settings, hostname) => {
-    const normalizedHostname = hostname.trim().toLowerCase()
+    const normalizedHostname = normalizeHostname(hostname)
 
     if (normalizedHostname && hasOwnProperty.call(settings.perHostMode, normalizedHostname)) {
         return settings.perHostMode[normalizedHostname]
     }
 
     return settings.globalMode
+}
+
+/**
+ * @param {QueryIdentitySettings} settings
+ * @param {QueryIdentityMode} mode
+ * @returns {QueryIdentitySettings}
+ */
+export const setGlobalQueryIdentityMode = (settings, mode) => ({
+    globalMode: mode,
+    perHostMode: Object.entries(settings.perHostMode).reduce(
+        (nextPerHostMode, [hostname, hostMode]) => {
+            if (hostMode !== mode) {
+                nextPerHostMode[hostname] = hostMode
+            }
+
+            return nextPerHostMode
+        },
+        /** @type {Record<string, QueryIdentityMode>} */ ({})
+    ),
+})
+
+/**
+ * @param {QueryIdentitySettings} settings
+ * @param {string} hostname
+ * @param {QueryIdentityMode} mode
+ * @returns {QueryIdentitySettings}
+ */
+export const setHostnameQueryIdentityMode = (settings, hostname, mode) => {
+    const normalizedHostname = normalizeHostname(hostname)
+    if (!normalizedHostname) return settings
+
+    const nextPerHostMode = {...settings.perHostMode}
+
+    if (mode === settings.globalMode) {
+        delete nextPerHostMode[normalizedHostname]
+    } else {
+        nextPerHostMode[normalizedHostname] = mode
+    }
+
+    return {
+        ...settings,
+        perHostMode: nextPerHostMode,
+    }
+}
+
+/**
+ * @param {QueryIdentitySettings} settings
+ * @param {string} hostname
+ * @returns {QueryIdentitySettings}
+ */
+export const removeHostnameQueryIdentityMode = (settings, hostname) => {
+    const normalizedHostname = normalizeHostname(hostname)
+    if (!normalizedHostname || !hasOwnProperty.call(settings.perHostMode, normalizedHostname)) {
+        return settings
+    }
+
+    const nextPerHostMode = {...settings.perHostMode}
+    delete nextPerHostMode[normalizedHostname]
+
+    return {
+        ...settings,
+        perHostMode: nextPerHostMode,
+    }
 }
 
 /** @param {URL} url @param {QueryIdentityMode} mode @returns {string} */

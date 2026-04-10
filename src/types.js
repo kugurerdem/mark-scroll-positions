@@ -17,6 +17,7 @@
  * @typedef {object} PageData
  * @property {ScrollDetails[]} scrolls
  * @property {string | null} title
+ * @property {string | null} pageURL
  */
 
 /** @typedef {'top' | 'bottom'} ScrollInsertPosition */
@@ -28,16 +29,28 @@
  * @property {Record<string, QueryIdentityMode>} perHostMode
  */
 
-/** @typedef {Record<string, PageData>} PageDetailsByURL */
+/**
+ * @typedef {object} PageIdentity
+ * @property {string} storageKey
+ * @property {string | null} pageURL
+ */
 
-/** @typedef {(data: PageData) => void} SetPageData */
-/** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => void} PatchScroll */
+/**
+ * @typedef {object} PageRecord
+ * @property {PageIdentity} identity
+ * @property {PageData} pageData
+ */
+
+/** @typedef {Record<string, PageRecord>} PageRecordByStorageKey */
+
+/** @typedef {(data: PageData) => Promise<void>} SetPageData */
+/** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
 /** @typedef {(scrollDetails: ScrollDetails) => unknown} RenderScroll */
 
 /**
  * @typedef {object} BootContextValue
  * @property {chrome.tabs.Tab} activeTab
- * @property {string} absoluteURL
+ * @property {PageIdentity} pageIdentity
  * @property {PageData} pageData
  * @property {SetPageData} setPageData
  * @property {PatchScroll} patchScroll

@@ -2,24 +2,35 @@
 
 import {createContext, html, render, useCallback, useContext, useEffect, useState} from './ui.js'
 import {getAppRoot} from './app-root.js'
-import {GenericScroll, SortableScrollList, usePageDataState} from './common.js'
 import {Icon} from './icons.js'
+import {createPageIdentity} from './page-identity.js'
+import {capturePageScrollSnapshot, jumpToScrollPosition} from './page-dom.js'
+import {getScrollInsertPosition} from './preferences.js'
+import {
+    getPageData as getStoredPageData,
+    setPageData as setStoredPageData,
+} from './page-store.js'
+import {GenericScroll} from './scroll-card.js'
+import {SortableScrollList} from './sortable-scroll-list.js'
+import {subscribeToStorageKey} from './storage.js'
 import {initializeTheme} from './theme.js'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
     getQueryIdentitySettings,
     normalizeQueryIdentitySettings,
-    resolvePageStorageKey,
     resolveQueryIdentityMode,
+    setHostnameQueryIdentityMode,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
 } from './url-identity.js'
+import {usePageDataState} from './use-page-data-state.js'
 
 /** @typedef {import('./types.js').BootContextValue} BootContextValue */
 /** @typedef {import('./types.js').PageData} PageData */
+/** @typedef {import('./types.js').PageIdentity} PageIdentity */
 /** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
 /** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
 /** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {import('./page-dom.js').PageScrollSnapshot} PageScrollSnapshot */
 
 const Context = createContext(/** @type {BootContextValue | null} */ (null))
 
@@ -80,27 +91,13 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
         queryIdentitySettings,
         hostname
     )
-    const absoluteURL = resolvePageStorageKey(activeURL, queryIdentitySettings)
-    const [pageData, setPageData, patchScroll] = usePageDataState(absoluteURL)
+    const pageIdentity = createPageIdentity(activeURL, queryIdentitySettings)
+    const [pageData, setPageData, patchScroll] = usePageDataState(pageIdentity)
 
     useEffect(() => {
-        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
-        const onStorageChange = (changes, areaName) => {
-            if (areaName !== 'local') return
-
-            const settingsChange = changes[QUERY_IDENTITY_SETTINGS_KEY]
-            if (!settingsChange) return
-
-            setQueryIdentitySettings(
-                normalizeQueryIdentitySettings(settingsChange.newValue)
-            )
-        }
-
-        chrome.storage.onChanged.addListener(onStorageChange)
-
-        return () => {
-            chrome.storage.onChanged.removeListener(onStorageChange)
-        }
+        return subscribeToStorageKey(QUERY_IDENTITY_SETTINGS_KEY, (change) => {
+            setQueryIdentitySettings(normalizeQueryIdentitySettings(change.newValue))
+        })
     }, [])
 
     const onQueryIdentityModeChange = useCallback(
@@ -108,13 +105,11 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
         (nextMode) => {
             /** @param {QueryIdentitySettings} current */
             const updateSettings = (current) => {
-                const nextSettings = {
-                    ...current,
-                    perHostMode: {
-                        ...current.perHostMode,
-                        [hostname]: nextMode,
-                    },
-                }
+                const nextSettings = setHostnameQueryIdentityMode(
+                    current,
+                    hostname,
+                    nextMode
+                )
 
                 void setStoredQueryIdentitySettings(nextSettings)
                 return nextSettings
@@ -127,7 +122,7 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
 
     return html`
         <${Context.Provider}
-            value=${{activeTab, absoluteURL, pageData, setPageData, patchScroll}}
+            value=${{activeTab, pageIdentity, pageData, setPageData, patchScroll}}
         >
             <${App}
                 hasQueryParameters=${hasQueryParameters}
@@ -154,7 +149,7 @@ const App = ({
     queryIdentityMode,
     onQueryIdentityModeChange,
 }) => {
-    const {activeTab, absoluteURL, pageData, setPageData} = useBootContext()
+    const {activeTab, pageIdentity, pageData, setPageData} = useBootContext()
     const markCountLabel = `${pageData.scrolls.length} mark${pageData.scrolls.length !== 1 ? 's' : ''}`
 
     const onOpenSettings = useCallback(() => {
@@ -166,15 +161,19 @@ const App = ({
         window.open('./settings.html')
     }, [])
 
-    const onSave = useCallback(() => {
+    const onSave = useCallback(async () => {
         if (!activeTab.id) return
 
-        void chrome.scripting.executeScript({
+        const injectionResults = await chrome.scripting.executeScript({
             target: {tabId: activeTab.id},
-            func: saveScrollDetails,
-            args: [absoluteURL],
+            func: capturePageScrollSnapshot,
         })
-    }, [activeTab.id, absoluteURL])
+
+        const snapshot = injectionResults[0]?.result
+        if (!snapshot) return
+
+        await saveCurrentMark(pageIdentity, snapshot)
+    }, [activeTab.id, pageIdentity])
 
     const onOpenAllMarks = useCallback(async () => {
         const manageURL = chrome.runtime.getURL('src/manage.html')
@@ -224,9 +223,7 @@ const App = ({
                 </button>
                 <button
                     type="button"
-                    onClick=${() => {
-                        void onOpenAllMarks()
-                    }}
+                    onClick=${onOpenAllMarks}
                     class="button button--secondary button--fill"
                 >
                     <${Icon} icon="bookBookmark" className="icon icon--sm" />
@@ -308,98 +305,40 @@ const Scroll = ({scrollDetails}) => {
     `
 }
 
-/** @param {string} absoluteURL @returns {Promise<PageData>} */
-const saveScrollDetails = async (absoluteURL) => {
-    const markInsertPositionKey = 'markInsertPosition'
+/**
+ * @param {PageIdentity} pageIdentity
+ * @param {PageScrollSnapshot} snapshot
+ * @returns {Promise<PageData>}
+ */
+const saveCurrentMark = async (pageIdentity, snapshot) => {
+    const pageData = await getStoredPageData(pageIdentity)
+    const markInsertPosition = await getScrollInsertPosition()
 
-    /** @param {unknown} value @returns {value is ScrollInsertPosition} */
-    const isScrollInsertPosition = (value) =>
-        value === 'top' || value === 'bottom'
-
-    /** @param {unknown} value @returns {value is PageData} */
-    const isPageData = (value) =>
-        Boolean(value) &&
-        typeof value === 'object' &&
-        Array.isArray(/** @type {{scrolls?: unknown}} */ (value).scrolls)
-
-    const uuid = crypto.randomUUID()
-    const storedPageData = (await chrome.storage.local.get(absoluteURL))[absoluteURL]
-
-    /** @type {PageData} */
-    const pageData = isPageData(storedPageData)
-        ? storedPageData
-        : {
-            scrolls: [],
-            title: document.title,
-        }
-
-    const markNumber = pageData.scrolls.length + 1
-
-    const settings = await chrome.storage.local.get(markInsertPositionKey)
-    const markInsertPosition = isScrollInsertPosition(settings[markInsertPositionKey])
-        ? settings[markInsertPositionKey]
-        : 'bottom'
-
-    const contentHeight = Math.max(
-        document.documentElement?.scrollHeight || 0,
-        document.body?.scrollHeight || 0
-    )
-
-    const maxScrollPosition = Math.max(contentHeight - window.innerHeight, 0)
-    const scrollPosition = Math.min(window.pageYOffset, maxScrollPosition)
-
-    /** @type {ScrollDetails} */
     const scrollDetails = {
-        scrollPosition,
-        viewportHeight: window.innerHeight,
-        contentHeight,
+        scrollPosition: snapshot.scrollPosition,
+        viewportHeight: snapshot.viewportHeight,
+        contentHeight: snapshot.contentHeight,
         dateISO: new Date().toISOString(),
-        uuid,
-        name: `Mark #${markNumber}`,
+        uuid: crypto.randomUUID(),
+        name: `Mark #${pageData.scrolls.length + 1}`,
         note: '',
     }
 
+    const scrolls = [...pageData.scrolls]
+
     if (markInsertPosition === 'top') {
-        pageData.scrolls.unshift(scrollDetails)
+        scrolls.unshift(scrollDetails)
     } else {
-        pageData.scrolls.push(scrollDetails)
+        scrolls.push(scrollDetails)
     }
 
-    await chrome.storage.local.set({[absoluteURL]: pageData})
-    return pageData
-}
+    const nextPageData = {
+        ...pageData,
+        scrolls,
+        title: snapshot.title || pageData.title,
+    }
 
-/**
- * @typedef {object} JumpToScrollPositionArgs
- * @property {number} scrollPosition
- * @property {number} viewportHeight
- * @property {number} contentHeight
- */
-
-/** @param {JumpToScrollPositionArgs} args */
-const jumpToScrollPosition = ({
-    scrollPosition,
-    viewportHeight,
-    contentHeight,
-}) => {
-    const savedScrollableHeight = Math.max(contentHeight - viewportHeight, 0)
-    const percentage =
-        savedScrollableHeight > 0 ? scrollPosition / savedScrollableHeight : 0
-
-    const normalizedPercentage = Math.min(1, Math.max(0, percentage))
-
-    const currentContentHeight = Math.max(
-        document.documentElement?.scrollHeight || 0,
-        document.body?.scrollHeight || 0
-    )
-
-    const currentScrollableHeight = Math.max(
-        currentContentHeight - window.innerHeight,
-        0
-    )
-
-    const toJumpPositionY = normalizedPercentage * currentScrollableHeight
-    window.scrollTo(0, toJumpPositionY)
+    return setStoredPageData(pageIdentity, nextPageData)
 }
 
 void main()

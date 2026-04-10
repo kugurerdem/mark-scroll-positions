@@ -1,5 +1,7 @@
 // @ts-check
 
+import {subscribeToStorageKey} from './storage.js'
+
 /** @typedef {'light' | 'dark'} ThemeMode */
 /** @typedef {ThemeMode | 'system'} ThemePreference */
 
@@ -16,7 +18,7 @@ const isThemePreference = (value) =>
     value === 'light' || value === 'dark' || value === 'system'
 
 /** @returns {Promise<ThemePreference>} */
-const readThemePreference = async () => {
+export const getThemePreference = async () => {
     try {
         const result = await chrome.storage.local.get(THEME_PREFERENCE_KEY)
         const preference = result[THEME_PREFERENCE_KEY]
@@ -25,10 +27,6 @@ const readThemePreference = async () => {
         return 'system'
     }
 }
-
-/** @returns {Promise<ThemePreference>} */
-export const getThemePreference = () =>
-    readThemePreference()
 
 /** @returns {Promise<ThemeMode | null>} */
 const readBrowserSettingsColorScheme = async () => {
@@ -79,20 +77,19 @@ const resolveTheme = async (preference) => {
     return preference
 }
 
+/** @param {unknown} value @returns {ThemePreference | null} */
+const parseThemePreference = (value) =>
+    isThemePreference(value) ? value : null
+
 const applyCurrentTheme = async () => {
     const resolvedTheme = await resolveTheme(currentPreference)
     document.documentElement.dataset.theme = resolvedTheme
 }
 
-/** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
-const handleStoragePreferenceChange = (changes, areaName) => {
-    if (areaName !== 'local') return
-
-    const themePreferenceChange = changes[THEME_PREFERENCE_KEY]
-    if (!themePreferenceChange) return
-
-    const updatedPreference = themePreferenceChange.newValue
-    if (!isThemePreference(updatedPreference)) return
+/** @param {chrome.storage.StorageChange} themePreferenceChange */
+const handleStoragePreferenceChange = (themePreferenceChange) => {
+    const updatedPreference = parseThemePreference(themePreferenceChange.newValue)
+    if (!updatedPreference) return
 
     currentPreference = updatedPreference
     void applyCurrentTheme()
@@ -100,24 +97,12 @@ const handleStoragePreferenceChange = (changes, areaName) => {
 
 /** @param {(preference: ThemePreference) => void} onPreferenceChange */
 export const subscribeThemePreference = (onPreferenceChange) => {
-    /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
-    const handlePreferenceChange = (changes, areaName) => {
-        if (areaName !== 'local') return
-
-        const themePreferenceChange = changes[THEME_PREFERENCE_KEY]
-        if (!themePreferenceChange) return
-
-        const updatedPreference = themePreferenceChange.newValue
-        if (!isThemePreference(updatedPreference)) return
-
-        onPreferenceChange(updatedPreference)
-    }
-
-    chrome.storage.onChanged.addListener(handlePreferenceChange)
-
-    return () => {
-        chrome.storage.onChanged.removeListener(handlePreferenceChange)
-    }
+    return subscribeToStorageKey(THEME_PREFERENCE_KEY, (themePreferenceChange) => {
+        const updatedPreference = parseThemePreference(themePreferenceChange.newValue)
+        if (updatedPreference) {
+            onPreferenceChange(updatedPreference)
+        }
+    })
 }
 
 const handleSystemThemeChange = () => {
@@ -128,7 +113,7 @@ const handleSystemThemeChange = () => {
 const attachThemeListeners = () => {
     if (listenersAttached) return
 
-    chrome.storage.onChanged.addListener(handleStoragePreferenceChange)
+    subscribeToStorageKey(THEME_PREFERENCE_KEY, handleStoragePreferenceChange)
 
     if (typeof systemThemeQuery.addEventListener === 'function') {
         systemThemeQuery.addEventListener('change', handleSystemThemeChange)
@@ -149,7 +134,7 @@ export const setThemePreference = async (preference) => {
 /** @returns {Promise<void>} */
 export const initializeTheme = async () => {
     try {
-        currentPreference = await readThemePreference()
+        currentPreference = await getThemePreference()
         await applyCurrentTheme()
         attachThemeListeners()
     } finally {

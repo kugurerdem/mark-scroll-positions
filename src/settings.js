@@ -11,9 +11,20 @@ import {
 import {Icon} from './icons.js'
 import {ThemeToggle} from './theme-toggle.js'
 import {
+    MARK_INSERT_POSITION_KEY,
+    getScrollInsertPosition,
+    isScrollInsertPosition,
+    setScrollInsertPosition,
+} from './preferences.js'
+import {subscribeToStorageKey} from './storage.js'
+import {
     QUERY_IDENTITY_SETTINGS_KEY,
+    defaultQueryIdentitySettings,
     getQueryIdentitySettings,
-    normalizeQueryIdentitySettings,
+    parseQueryIdentityMode,
+    removeHostnameQueryIdentityMode,
+    setGlobalQueryIdentityMode,
+    setHostnameQueryIdentityMode,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
 } from './url-identity.js'
 
@@ -21,28 +32,6 @@ import {
 /** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
 /** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
 /** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
-
-const MARK_INSERT_POSITION_KEY = 'markInsertPosition'
-
-/** @param {string} value @returns {QueryIdentityMode | null} */
-const parseQueryIdentityMode = (value) =>
-    value === 'include' || value === 'ignore' ? value : null
-
-/** @param {unknown} value @returns {value is ScrollInsertPosition} */
-const isScrollInsertPosition = (value) =>
-    value === 'top' || value === 'bottom'
-
-/** @returns {Promise<ScrollInsertPosition>} */
-const getScrollInsertPosition = async () => {
-    const result = await chrome.storage.local.get(MARK_INSERT_POSITION_KEY)
-    const value = result[MARK_INSERT_POSITION_KEY]
-    return isScrollInsertPosition(value) ? value : 'bottom'
-}
-
-/** @param {ScrollInsertPosition} position @returns {Promise<void>} */
-const setScrollInsertPosition = async (position) => {
-    await chrome.storage.local.set({[MARK_INSERT_POSITION_KEY]: position})
-}
 
 /** @param {string} value @returns {boolean} */
 const hasProtocol = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
@@ -61,12 +50,6 @@ const normalizeHostnameInput = (value) => {
     } catch {
         return null
     }
-}
-
-/** @type {QueryIdentitySettings} */
-const defaultQueryIdentitySettings = {
-    globalMode: 'ignore',
-    perHostMode: {},
 }
 
 const main = async () => {
@@ -89,18 +72,14 @@ const App = () => {
     useEffect(() => {
         let isMounted = true
 
-        void getThemePreference().then((preference) => {
+        void Promise.all([
+            getThemePreference(),
+            getScrollInsertPosition(),
+            getQueryIdentitySettings(),
+        ]).then(([preference, position, settings]) => {
             if (!isMounted) return
             setThemePreference(preference)
-        })
-
-        void getScrollInsertPosition().then((position) => {
-            if (!isMounted) return
             setMarkInsertPosition(position)
-        })
-
-        void getQueryIdentitySettings().then((settings) => {
-            if (!isMounted) return
             setQueryIdentitySettings(settings)
         })
 
@@ -109,32 +88,28 @@ const App = () => {
             setThemePreference(preference)
         })
 
-        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
-        const onStorageChange = (changes, areaName) => {
-            if (areaName !== 'local') return
-
-            const positionChange = changes[MARK_INSERT_POSITION_KEY]
-            if (positionChange) {
+        const unsubscribeMarkInsertPosition = subscribeToStorageKey(
+            MARK_INSERT_POSITION_KEY,
+            (positionChange) => {
                 const nextValue = positionChange.newValue
                 if (isScrollInsertPosition(nextValue)) {
                     setMarkInsertPosition(nextValue)
                 }
             }
-
-            const queryIdentityChange = changes[QUERY_IDENTITY_SETTINGS_KEY]
-            if (!queryIdentityChange) return
-
-            setQueryIdentitySettings(
-                normalizeQueryIdentitySettings(queryIdentityChange.newValue)
-            )
-        }
-
-        chrome.storage.onChanged.addListener(onStorageChange)
+        )
+        const unsubscribeQueryIdentitySettings = subscribeToStorageKey(
+            QUERY_IDENTITY_SETTINGS_KEY,
+            async () => {
+                if (!isMounted) return
+                setQueryIdentitySettings(await getQueryIdentitySettings())
+            }
+        )
 
         return () => {
             isMounted = false
             unsubscribe()
-            chrome.storage.onChanged.removeListener(onStorageChange)
+            unsubscribeMarkInsertPosition()
+            unsubscribeQueryIdentitySettings()
         }
     }, [])
 
@@ -174,20 +149,11 @@ const App = () => {
     const onGlobalQueryIdentityModeChange = useCallback(
         /** @param {QueryIdentityMode} mode */
         (mode) => {
-            /** @param {QueryIdentitySettings} current */
-            const buildNextSettings = (current) => ({
-                globalMode: mode,
-                perHostMode: Object.entries(current.perHostMode).reduce(
-                    (accumulator, [hostname, hostMode]) => {
-                        if (hostMode === mode) return accumulator
-                        accumulator[hostname] = hostMode
-                        return accumulator
-                    },
-                    /** @type {Record<string, QueryIdentityMode>} */ ({})
-                ),
-            })
-
-            updateQueryIdentitySettings(buildNextSettings)
+            updateQueryIdentitySettings(
+                /** @param {QueryIdentitySettings} current */
+                (current) =>
+                setGlobalQueryIdentityMode(current, mode)
+            )
         },
         [updateQueryIdentitySettings]
     )
@@ -195,23 +161,11 @@ const App = () => {
     const onHostnameModeChange = useCallback(
         /** @param {string} hostname @param {QueryIdentityMode} mode */
         (hostname, mode) => {
-            /** @param {QueryIdentitySettings} current */
-            const buildNextSettings = (current) => {
-                const nextPerHostMode = {...current.perHostMode}
-
-                if (mode === current.globalMode) {
-                    delete nextPerHostMode[hostname]
-                } else {
-                    nextPerHostMode[hostname] = mode
-                }
-
-                return {
-                    ...current,
-                    perHostMode: nextPerHostMode,
-                }
-            }
-
-            updateQueryIdentitySettings(buildNextSettings)
+            updateQueryIdentitySettings(
+                /** @param {QueryIdentitySettings} current */
+                (current) =>
+                setHostnameQueryIdentityMode(current, hostname, mode)
+            )
         },
         [updateQueryIdentitySettings]
     )
@@ -219,18 +173,11 @@ const App = () => {
     const onRemoveHostnameOverride = useCallback(
         /** @param {string} hostname */
         (hostname) => {
-            /** @param {QueryIdentitySettings} current */
-            const buildNextSettings = (current) => {
-                const nextPerHostMode = {...current.perHostMode}
-                delete nextPerHostMode[hostname]
-
-                return {
-                    ...current,
-                    perHostMode: nextPerHostMode,
-                }
-            }
-
-            updateQueryIdentitySettings(buildNextSettings)
+            updateQueryIdentitySettings(
+                /** @param {QueryIdentitySettings} current */
+                (current) =>
+                removeHostnameQueryIdentityMode(current, hostname)
+            )
         },
         [updateQueryIdentitySettings]
     )
@@ -244,25 +191,11 @@ const App = () => {
         }
 
         setHostnameError(null)
-
-        /** @param {QueryIdentitySettings} current */
-        const buildNextSettings = (current) => {
-            const nextPerHostMode = {...current.perHostMode}
-
-            if (newHostnameMode === current.globalMode) {
-                delete nextPerHostMode[normalizedHostname]
-            } else {
-                nextPerHostMode[normalizedHostname] = newHostnameMode
-            }
-
-            return {
-                ...current,
-                perHostMode: nextPerHostMode,
-            }
-        }
-
-        updateQueryIdentitySettings(buildNextSettings)
-
+        updateQueryIdentitySettings(
+            /** @param {QueryIdentitySettings} current */
+            (current) =>
+                setHostnameQueryIdentityMode(current, normalizedHostname, newHostnameMode)
+        )
         setNewHostname('')
     }, [newHostname, newHostnameMode, updateQueryIdentitySettings])
 

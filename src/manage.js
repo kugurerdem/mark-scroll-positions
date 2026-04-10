@@ -2,119 +2,69 @@
 
 import {html, render, useEffect, useState} from './ui.js'
 import {getAppRoot} from './app-root.js'
-import {GenericScroll, SortableScrollList, usePageDataState} from './common.js'
 import {Icon} from './icons.js'
+import {getNavigablePageURL} from './page-identity.js'
+import {jumpToScrollPosition} from './page-dom.js'
+import {
+    applyPageRecordChanges,
+    getAllPageRecords,
+    removePageData,
+} from './page-store.js'
+import {GenericScroll} from './scroll-card.js'
+import {SortableScrollList} from './sortable-scroll-list.js'
+import {subscribeToLocalStorageChanges} from './storage.js'
 import {initializeTheme} from './theme.js'
+import {usePageDataState} from './use-page-data-state.js'
 
-/** @typedef {import('./types.js').PageData} PageData */
-/** @typedef {import('./types.js').PageDetailsByURL} PageDetailsByURL */
+/** @typedef {import('./types.js').PageIdentity} PageIdentity */
+/** @typedef {import('./types.js').PageRecord} PageRecord */
+/** @typedef {import('./types.js').PageRecordByStorageKey} PageRecordByStorageKey */
 /** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
 
-/** @typedef {[string, PageData]} PageEntry */
-/** @typedef {(current: PageDetailsByURL | ((current: PageDetailsByURL) => PageDetailsByURL)) => void} SetPagesByURL */
-
-const {entries} = Object
+const {values} = Object
 const allOrigins = ['<all_urls>']
-const middot = String.fromCharCode(183)
 
-/** @param {string} iso @returns {number} */
-const parseTimestamp = (iso) => {
-    const timestamp = new Date(iso).getTime()
-    return Number.isFinite(timestamp) ? timestamp : 0
-}
-
-/** @param {PageData} pageData @returns {number} */
-const latestUpdateTimestamp = ({scrolls}) =>
+/** @param {PageRecord} pageRecord @returns {number} */
+const latestUpdateTimestamp = ({pageData: {scrolls}}) =>
     scrolls.reduce((latest, scroll) => {
-        const timestamp = parseTimestamp(scroll.dateISO)
+        const timestamp = new Date(scroll.dateISO).getTime()
         return timestamp > latest ? timestamp : latest
     }, 0)
 
-/** @param {PageEntry} left @param {PageEntry} right @returns {number} */
-const comparePagesByNewestUpdate = (
-    [leftURL, leftDetails],
-    [rightURL, rightDetails]
-) => {
-    const byNewestUpdate =
-        latestUpdateTimestamp(rightDetails) - latestUpdateTimestamp(leftDetails)
+/** @param {PageRecord} left @param {PageRecord} right @returns {number} */
+const comparePagesByNewestUpdate = (left, right) => {
+    const byNewestUpdate = latestUpdateTimestamp(right) - latestUpdateTimestamp(left)
 
     if (byNewestUpdate !== 0) return byNewestUpdate
-    return leftURL.localeCompare(rightURL)
+    return left.identity.storageKey.localeCompare(right.identity.storageKey)
 }
-
-/** @param {unknown} value @returns {value is PageData} */
-const isPageData = (value) => {
-    if (!value || typeof value !== 'object') return false
-    return Array.isArray(/** @type {{scrolls?: unknown}} */ (value).scrolls)
-}
-
-/** @param {Record<string, unknown>} storageData @returns {PageDetailsByURL} */
-const extractPageDetailsByURL = (storageData) =>
-    entries(storageData).reduce((accumulator, [key, value]) => {
-        if (!isPageData(value)) return accumulator
-
-        accumulator[key] = value
-        return accumulator
-    }, /** @type {PageDetailsByURL} */ ({}))
 
 const main = async () => {
     await initializeTheme()
 
-    const pageDetailsByURL = extractPageDetailsByURL(
-        /** @type {Record<string, unknown>} */ (await chrome.storage.local.get())
+    const pageRecordsByStorageKey = await getAllPageRecords()
+    render(
+        html`<${App} pageRecordsByStorageKey=${pageRecordsByStorageKey} />`,
+        getAppRoot()
     )
-
-    render(html`<${App} pageDetailsByURL=${pageDetailsByURL} />`, getAppRoot())
 }
 
-/** @param {{pageDetailsByURL: PageDetailsByURL}} props */
-const App = ({pageDetailsByURL}) => {
+/** @param {{pageRecordsByStorageKey: PageRecordByStorageKey}} props */
+const App = ({pageRecordsByStorageKey}) => {
     const [searchText, setSearchText] = useState(/** @type {string | null} */ (null))
-    const [pagesByURL, setPagesByURL] = useState(pageDetailsByURL)
+    const [pageRecords, setPageRecords] = useState(pageRecordsByStorageKey)
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
     const [pendingJump, setPendingJump] = useState(
-        /** @type {{url: string, details: ScrollDetails} | null} */ (null)
+        /** @type {{pageIdentity: PageIdentity, details: ScrollDetails} | null} */ (null)
     )
 
     useEffect(() => {
-        /** @param {{[key: string]: chrome.storage.StorageChange}} changes @param {string} areaName */
-        const onStorageChange = (changes, areaName) => {
-            if (areaName !== 'local') return
-
-            /** @param {PageDetailsByURL} current */
-            const updatePages = (current) => {
-                const next = {...current}
-                let hasChanged = false
-
-                for (const [key, {oldValue, newValue}] of entries(changes)) {
-                    const hadPageData = isPageData(oldValue)
-                    const hasPageData = isPageData(newValue)
-
-                    if (!hadPageData && !hasPageData) continue
-
-                    if (!hasPageData) {
-                        if (key in next) {
-                            delete next[key]
-                            hasChanged = true
-                        }
-                        continue
-                    }
-
-                    next[key] = newValue
-                    hasChanged = true
-                }
-
-                return hasChanged ? next : current
-            }
-
-            setPagesByURL(updatePages)
-        }
-
-        chrome.storage.onChanged.addListener(onStorageChange)
-
-        return () => {
-            chrome.storage.onChanged.removeListener(onStorageChange)
-        }
+        return subscribeToLocalStorageChanges((changes) => {
+            setPageRecords(
+                /** @param {PageRecordByStorageKey} current */
+                (current) => applyPageRecordChanges(current, changes)
+            )
+        })
     }, [])
 
     const handleEnableAutoJump = async () => {
@@ -125,23 +75,24 @@ const App = ({pageDetailsByURL}) => {
 
         if (!pendingJump) return
 
-        const {url, details} = pendingJump
+        const {pageIdentity, details} = pendingJump
         setPendingJump(null)
-        await jumpToMarkedPosition(url, details)
+        await jumpToMarkedPosition(pageIdentity, details)
     }
 
-    /** @param {string} url @param {ScrollDetails} details */
-    const handleMissingAutoJumpPermission = (url, details) => {
-        setPendingJump({url, details})
+    /** @param {PageIdentity} pageIdentity @param {ScrollDetails} details */
+    const handleMissingAutoJumpPermission = (pageIdentity, details) => {
+        setPendingJump({pageIdentity, details})
         setShowPermissionPrompt(true)
     }
 
-    const filteredEntries = entries(pagesByURL).filter(
-        ([url, details]) =>
+    const filteredRecords = values(pageRecords).filter(
+        ({identity, pageData}) =>
             !searchText ||
-            url.includes(searchText) ||
-            details.title?.includes(searchText) ||
-            details.scrolls.some(
+            identity.storageKey.includes(searchText) ||
+            identity.pageURL?.includes(searchText) ||
+            pageData.title?.includes(searchText) ||
+            pageData.scrolls.some(
                 /** @param {ScrollDetails} scroll */
                 (scroll) =>
                     scroll.note?.includes(searchText) ||
@@ -149,19 +100,18 @@ const App = ({pageDetailsByURL}) => {
             )
     )
 
-    const visibleEntries = [...filteredEntries].sort(comparePagesByNewestUpdate)
-    const totalMarks = entries(pagesByURL).reduce(
-        (sum, [, details]) => sum + details.scrolls.length,
+    const visibleRecords = [...filteredRecords].sort(comparePagesByNewestUpdate)
+    const totalMarks = values(pageRecords).reduce(
+        (sum, {pageData}) => sum + pageData.scrolls.length,
         0
     )
-    const subtitle = `${filteredEntries.length} page${filteredEntries.length !== 1 ? 's' : ''} ${middot} ${totalMarks} mark${totalMarks !== 1 ? 's' : ''} total`
+    const subtitle = `${filteredRecords.length} page${filteredRecords.length !== 1 ? 's' : ''} · ${totalMarks} mark${totalMarks !== 1 ? 's' : ''} total`
 
-    /** @param {string} url */
-    const renderPage = (url) => html`
+    /** @param {PageRecord} pageRecord */
+    const renderPage = (pageRecord) => html`
         <${Page}
-            key=${url}
-            url=${url}
-            setPagesByURL=${setPagesByURL}
+            key=${pageRecord.identity.storageKey}
+            identity=${pageRecord.identity}
             onMissingPermission=${handleMissingAutoJumpPermission}
         />
     `
@@ -231,9 +181,7 @@ const App = ({pageDetailsByURL}) => {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick=${() => {
-                                            void handleEnableAutoJump()
-                                        }}
+                                        onClick=${handleEnableAutoJump}
                                         class="button button--primary"
                                     >
                                         Enable
@@ -244,7 +192,7 @@ const App = ({pageDetailsByURL}) => {
                     `
                     : null}
 
-                ${filteredEntries.length === 0
+                ${filteredRecords.length === 0
                     ? html`
                         <div class="manage-empty-state">
                             <div class="manage-empty-state__icon-wrap">
@@ -265,7 +213,7 @@ const App = ({pageDetailsByURL}) => {
                     `
                     : html`
                         <div class="manage-page__list">
-                            ${visibleEntries.map(([url]) => renderPage(url))}
+                            ${visibleRecords.map((pageRecord) => renderPage(pageRecord))}
                         </div>
                     `}
             </main>
@@ -284,38 +232,6 @@ const relativeDate = (iso) => {
     if (days < 30) return `${days}d ago`
     const months = Math.floor(days / 30)
     return `${months}mo ago`
-}
-
-/**
- * @param {{
- *   scrollPosition: number,
- *   viewportHeight: number,
- *   contentHeight: number,
- * }} args
- */
-const jumpToScrollPosition = ({
-    scrollPosition,
-    viewportHeight,
-    contentHeight,
-}) => {
-    const savedScrollableHeight = Math.max(contentHeight - viewportHeight, 0)
-    const percentage =
-        savedScrollableHeight > 0 ? scrollPosition / savedScrollableHeight : 0
-
-    const normalizedPercentage = Math.min(1, Math.max(0, percentage))
-
-    const currentContentHeight = Math.max(
-        document.documentElement?.scrollHeight || 0,
-        document.body?.scrollHeight || 0
-    )
-
-    const currentScrollableHeight = Math.max(
-        currentContentHeight - window.innerHeight,
-        0
-    )
-
-    const toJumpPositionY = normalizedPercentage * currentScrollableHeight
-    window.scrollTo(0, toJumpPositionY)
 }
 
 /** @param {number} tabId @returns {Promise<void>} */
@@ -349,9 +265,9 @@ const requestAllSitesPermission = async () => {
     }
 }
 
-/** @param {string} url @param {ScrollDetails} scrollDetails @returns {Promise<boolean>} */
-const jumpToMarkedPosition = async (url, scrollDetails) => {
-    const tab = await chrome.tabs.create({url: 'http://' + url})
+/** @param {PageIdentity} pageIdentity @param {ScrollDetails} scrollDetails @returns {Promise<boolean>} */
+const jumpToMarkedPosition = async (pageIdentity, scrollDetails) => {
+    const tab = await chrome.tabs.create({url: getNavigablePageURL(pageIdentity)})
     if (!tab.id) return false
 
     await waitForTabToFinishLoading(tab.id)
@@ -370,25 +286,22 @@ const jumpToMarkedPosition = async (url, scrollDetails) => {
 
 /**
  * @typedef {object} PageProps
- * @property {string} url
- * @property {SetPagesByURL} setPagesByURL
- * @property {(url: string, details: ScrollDetails) => void} onMissingPermission
+ * @property {PageIdentity} identity
+ * @property {(pageIdentity: PageIdentity, details: ScrollDetails) => void} onMissingPermission
  */
 
 /** @param {PageProps} props */
-const Page = ({url, setPagesByURL, onMissingPermission}) => {
-    const [pageData, setPageData, patchScroll] = usePageDataState(url)
+const Page = ({identity, onMissingPermission}) => {
+    const [pageData, setPageData, patchScroll] = usePageDataState(identity)
     const [expand, setExpand] = useState(false)
     const [jumpError, setJumpError] = useState(/** @type {string | null} */ (null))
-    const href = `http://${url}`
+    const href = getNavigablePageURL(identity)
 
     /** @param {ScrollDetails} details */
     const renderScrollItem = (details) => html`
         <${GenericScroll}
             scrollDetails=${details}
-            onJump=${() => {
-                void handleJump(details)
-            }}
+            onJump=${() => void handleJump(details)}
             patchScroll=${patchScroll}
             setPageData=${setPageData}
             pageData=${pageData}
@@ -396,12 +309,7 @@ const Page = ({url, setPagesByURL, onMissingPermission}) => {
     `
 
     const handlePageDelete = () => {
-        void chrome.storage.local.remove([url])
-        setPagesByURL((current) => {
-            const next = {...current}
-            delete next[url]
-            return next
-        })
+        void removePageData(identity)
     }
 
     /** @param {ScrollDetails} details */
@@ -410,11 +318,11 @@ const Page = ({url, setPagesByURL, onMissingPermission}) => {
 
         const hasPermission = await hasAllSitesPermission()
         if (!hasPermission) {
-            onMissingPermission(url, details)
+            onMissingPermission(identity, details)
             return
         }
 
-        const didJump = await jumpToMarkedPosition(url, details)
+        const didJump = await jumpToMarkedPosition(identity, details)
         if (!didJump) {
             setJumpError('Could not jump on this page.')
         }
@@ -434,11 +342,11 @@ const Page = ({url, setPagesByURL, onMissingPermission}) => {
             <div class="page-card__row">
                 <div class="page-card__info">
                     <a href=${href} target="_blank" class="page-card__title">
-                        ${pageData.title}
+                        ${pageData.title || identity.storageKey}
                     </a>
                     <span class="page-card__meta-row">
                         <a href=${href} target="_blank" class="page-card__url">
-                            ${url}
+                            ${identity.storageKey}
                         </a>
                         <span class="page-card__count">
                             ${pageData.scrolls.length} mark${pageData.scrolls.length !== 1 ? 's' : ''}
@@ -451,7 +359,11 @@ const Page = ({url, setPagesByURL, onMissingPermission}) => {
                 <div class="page-card__actions">
                     <button
                         type="button"
-                        onClick=${() => setExpand(!expand)}
+                        onClick=${() =>
+                            setExpand(
+                                /** @param {boolean} current */
+                                (current) => !current
+                            )}
                         class="icon-button page-card__toggle"
                     >
                         <${Icon}
