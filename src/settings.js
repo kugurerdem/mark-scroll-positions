@@ -29,9 +29,9 @@ import {
 } from './url-identity.js'
 
 /** @typedef {import('./theme.js').ThemePreference} ThemePreference */
-/** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
-/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
-/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {import('./url-identity.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('./url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('./preferences.js').ScrollInsertPosition} ScrollInsertPosition */
 
 /** @param {string} value @returns {boolean} */
 const hasProtocol = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(value)

@@ -3,8 +3,24 @@
 import {h, html, useEffect, useState} from './ui.js'
 import {Icon} from './icons.js'
 
-/** @typedef {import('./types.js').TextInputProps} TextInputProps */
-/** @typedef {import('./types.js').ButtonProps} ButtonProps */
+/** @typedef {import('./icons.js').IconName} IconName */
+
+/**
+ * @typedef {object} TextInputProps
+ * @property {string} value
+ * @property {string} [label]
+ * @property {(value: string) => void} [onChange]
+ * @property {(value: string) => void} [onBlur]
+ * @property {'input' | 'textarea'} [type]
+ * @property {string} [className]
+ */
+
+/**
+ * @typedef {object} ButtonProps
+ * @property {string} [text]
+ * @property {IconName} [icon]
+ * @property {() => void} [onClick]
+ */
 
 /** @param {TextInputProps} props */
 export const TextInput = ({

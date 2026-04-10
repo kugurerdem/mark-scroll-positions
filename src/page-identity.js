@@ -2,8 +2,13 @@
 
 import {buildPageStorageKey, resolveQueryIdentityMode} from './url-identity.js'
 
-/** @typedef {import('./types.js').PageIdentity} PageIdentity */
-/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('./url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
+
+/**
+ * @typedef {object} PageIdentity
+ * @property {string} storageKey
+ * @property {string | null} pageURL
+ */
 
 const LEGACY_PAGE_URL_PROTOCOL = 'http://'
 

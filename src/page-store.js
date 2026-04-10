@@ -3,10 +3,33 @@
 import {createStoredPageIdentity, normalizePageURL} from './page-identity.js'
 import {subscribeToStorageKey} from './storage.js'
 
-/** @typedef {import('./types.js').PageData} PageData */
-/** @typedef {import('./types.js').PageIdentity} PageIdentity */
-/** @typedef {import('./types.js').PageRecord} PageRecord */
-/** @typedef {import('./types.js').PageRecordByStorageKey} PageRecordByStorageKey */
+/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
+
+/**
+ * @typedef {object} ScrollDetails
+ * @property {string} uuid
+ * @property {number} scrollPosition
+ * @property {number} viewportHeight
+ * @property {number} contentHeight
+ * @property {string} dateISO
+ * @property {string} name
+ * @property {string} note
+ */
+
+/**
+ * @typedef {object} PageData
+ * @property {ScrollDetails[]} scrolls
+ * @property {string | null} title
+ * @property {string | null} pageURL
+ */
+
+/**
+ * @typedef {object} PageRecord
+ * @property {PageIdentity} identity
+ * @property {PageData} pageData
+ */
+
+/** @typedef {Record<string, PageRecord>} PageRecordByStorageKey */
 
 const {entries, fromEntries} = Object
 

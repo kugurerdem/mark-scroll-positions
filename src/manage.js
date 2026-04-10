@@ -16,10 +16,10 @@ import {subscribeToLocalStorageChanges} from './storage.js'
 import {initializeTheme} from './theme.js'
 import {usePageDataState} from './use-page-data-state.js'
 
-/** @typedef {import('./types.js').PageIdentity} PageIdentity */
-/** @typedef {import('./types.js').PageRecord} PageRecord */
-/** @typedef {import('./types.js').PageRecordByStorageKey} PageRecordByStorageKey */
-/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
+/** @typedef {import('./page-store.js').PageRecord} PageRecord */
+/** @typedef {import('./page-store.js').PageRecordByStorageKey} PageRecordByStorageKey */
+/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
 
 const {values} = Object
 const allOrigins = ['<all_urls>']

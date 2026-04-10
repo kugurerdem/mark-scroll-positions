@@ -1,7 +1,12 @@
 // @ts-check
 
-/** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
-/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {'ignore' | 'include'} QueryIdentityMode */
+
+/**
+ * @typedef {object} QueryIdentitySettings
+ * @property {QueryIdentityMode} globalMode
+ * @property {Record<string, QueryIdentityMode>} perHostMode
+ */
 
 export const QUERY_IDENTITY_SETTINGS_KEY = 'queryIdentitySettings'
 

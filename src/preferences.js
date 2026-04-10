@@ -1,6 +1,6 @@
 // @ts-check
 
-/** @typedef {import('./types.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {'top' | 'bottom'} ScrollInsertPosition */
 
 export const MARK_INSERT_POSITION_KEY = 'markInsertPosition'
 

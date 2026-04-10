@@ -4,8 +4,20 @@ import {h, html, useState} from './ui.js'
 import {Icon} from './icons.js'
 import {Button, TextInput} from './form-controls.js'
 
-/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./types.js').GenericScrollProps} GenericScrollProps */
+/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./page-store.js').PageData} PageData */
+
+/** @typedef {(data: PageData) => Promise<void>} SetPageData */
+/** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
+
+/**
+ * @typedef {object} GenericScrollProps
+ * @property {ScrollDetails} scrollDetails
+ * @property {() => void} onJump
+ * @property {PageData} pageData
+ * @property {SetPageData} setPageData
+ * @property {PatchScroll} patchScroll
+ */
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
     month: 'short',

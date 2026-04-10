@@ -24,13 +24,24 @@ import {
 } from './url-identity.js'
 import {usePageDataState} from './use-page-data-state.js'
 
-/** @typedef {import('./types.js').BootContextValue} BootContextValue */
-/** @typedef {import('./types.js').PageData} PageData */
-/** @typedef {import('./types.js').PageIdentity} PageIdentity */
-/** @typedef {import('./types.js').QueryIdentityMode} QueryIdentityMode */
-/** @typedef {import('./types.js').QueryIdentitySettings} QueryIdentitySettings */
-/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./page-store.js').PageData} PageData */
+/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
+/** @typedef {import('./url-identity.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('./url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
 /** @typedef {import('./page-dom.js').PageScrollSnapshot} PageScrollSnapshot */
+
+/** @typedef {(data: PageData) => Promise<void>} SetPageData */
+/** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
+
+/**
+ * @typedef {object} BootContextValue
+ * @property {chrome.tabs.Tab} activeTab
+ * @property {PageIdentity} pageIdentity
+ * @property {PageData} pageData
+ * @property {SetPageData} setPageData
+ * @property {PatchScroll} patchScroll
+ */
 
 const Context = createContext(/** @type {BootContextValue | null} */ (null))
 

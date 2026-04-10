@@ -8,12 +8,13 @@ import {
     subscribeToPageData,
 } from './page-store.js'
 
-/** @typedef {import('./types.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./types.js').PageData} PageData */
-/** @typedef {import('./types.js').PageIdentity} PageIdentity */
-/** @typedef {import('./types.js').UsePageDataStateReturn} UsePageDataStateReturn */
+/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('./page-store.js').PageData} PageData */
+/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
+/** @typedef {(data: PageData) => Promise<void>} SetPageData */
+/** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
 
-/** @param {PageIdentity} pageIdentity @returns {UsePageDataStateReturn} */
+/** @param {PageIdentity} pageIdentity @returns {[PageData, SetPageData, PatchScroll]} */
 export const usePageDataState = (pageIdentity) => {
     const [pageData, setPageData] = useState(createEmptyPageData())
 

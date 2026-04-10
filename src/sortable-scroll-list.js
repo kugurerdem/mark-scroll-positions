@@ -2,7 +2,19 @@
 
 import {html, useRef, useState} from './ui.js'
 
-/** @typedef {import('./types.js').SortableScrollListProps} SortableScrollListProps */
+/** @typedef {import('./page-store.js').PageData} PageData */
+/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
+
+/** @typedef {(data: PageData) => Promise<void>} SetPageData */
+/** @typedef {(scrollDetails: ScrollDetails) => unknown} RenderScroll */
+
+/**
+ * @typedef {object} SortableScrollListProps
+ * @property {PageData} pageData
+ * @property {RenderScroll} renderItem
+ * @property {SetPageData} setPageData
+ * @property {'native' | 'pointer'} [interactionMode]
+ */
 
 const DRAG_THRESHOLD_PX = 4
 
