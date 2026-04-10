@@ -1,3 +1,14 @@
+# Mark Scroll Positions
+
+<p>
+  <a href="https://addons.mozilla.org/firefox/addon/mark-scroll-positions/">
+    <img alt="Get Mark Scroll Positions for Firefox" src="https://img.shields.io/badge/Get%20it%20for-Firefox-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white">
+  </a>
+  <a href="https://chromewebstore.google.com/detail/mark-scroll-positions/echejfhmdgnabmbihbmkdgeajmbojald">
+    <img alt="Get Mark Scroll Positions for Chrome" src="https://img.shields.io/badge/Get%20it%20for-Chrome-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white">
+  </a>
+</p>
+
 This extension saves your scroll positions, allowing you to resume reading
 later with ease.
 
@@ -10,13 +21,19 @@ this project.
 
 # Development
 
-Install the dependencies using npm:
+This extension ships directly from the source tree. Runtime dependencies are
+vendored in [`vendor/`](./vendor), including `Preact`, `preact/hooks`, and `HTM`.
+npm is only used to make developer tooling available, such as TypeScript for
+JSDoc-based type checking and `web-ext`. It is not required to build a bundle
+before shipping.
+
+If you want the developer tooling, install the npm dependencies:
 
 ```
 npm install
 ```
 
-Then, build the extension:
+Then, type-check the code:
 
 ```
 npm run typecheck
@@ -36,23 +53,12 @@ change.
 
 # Release
 
-Use `npm version` to bump the version and create the release commit + git tag.
+Releases are tag-driven.
 
-```
-npm run release:patch
-git push origin master --follow-tags
-```
+1. Update `package.json` and `manifest.json` to the same version.
+2. Commit that version bump on `master`.
+3. Create and push a matching `vX.Y.Z` tag.
 
-Also available:
-
-```
-npm run release:minor
-npm run release:major
-```
-
-The local release flow runs `typecheck`, updates `package.json` and
-`package-lock.json`, then syncs `manifest.json` to the same version before the
-version commit and `vX.Y.Z` tag are created.
-
-GitHub Actions creates the GitHub release when that tag is pushed by packaging
-the source extension directly.
+GitHub Actions then installs the developer dependencies, runs
+`npm run typecheck`, packages `manifest.json`, `public`, `src`, and `vendor`
+into `build.zip`, and creates the GitHub release from that tag.
