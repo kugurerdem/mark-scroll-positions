@@ -1,6 +1,6 @@
 // @ts-check
 
-import {h, html, useEffect, useState} from './ui.js'
+import {h, html, useEffect, useState} from '../lib/ui.js'
 import {Icon} from './icons.js'
 
 /** @typedef {import('./icons.js').IconName} IconName */

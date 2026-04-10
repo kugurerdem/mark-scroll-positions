@@ -1,22 +1,22 @@
 // @ts-check
 
-import {html, render, useCallback, useEffect, useState} from './ui.js'
-import {getAppRoot} from './app-root.js'
+import {html, render, useCallback, useEffect, useState} from '../../shared/lib/ui.js'
+import {getAppRoot} from '../../shared/lib/app-root.js'
 import {
     getThemePreference,
     initializeTheme,
     setThemePreference as setStoredThemePreference,
     subscribeThemePreference,
-} from './theme.js'
-import {Icon} from './icons.js'
-import {ThemeToggle} from './theme-toggle.js'
+} from '../../shared/lib/theme.js'
+import {Icon} from '../../shared/components/icons.js'
+import {ThemeToggle} from '../../shared/components/theme-toggle.js'
 import {
     MARK_INSERT_POSITION_KEY,
     getScrollInsertPosition,
     isScrollInsertPosition,
     setScrollInsertPosition,
-} from './preferences.js'
-import {subscribeToStorageKey} from './storage.js'
+} from '../../shared/lib/preferences.js'
+import {subscribeToStorageKey} from '../../shared/lib/storage.js'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
     defaultQueryIdentitySettings,
@@ -26,12 +26,12 @@ import {
     setGlobalQueryIdentityMode,
     setHostnameQueryIdentityMode,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
-} from './url-identity.js'
+} from '../../shared/lib/url-identity.js'
 
-/** @typedef {import('./theme.js').ThemePreference} ThemePreference */
-/** @typedef {import('./url-identity.js').QueryIdentityMode} QueryIdentityMode */
-/** @typedef {import('./url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
-/** @typedef {import('./preferences.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {import('../../shared/lib/theme.js').ThemePreference} ThemePreference */
+/** @typedef {import('../../shared/lib/url-identity.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('../../shared/lib/url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollInsertPosition} ScrollInsertPosition */
 
 /** @param {string} value @returns {boolean} */
 const hasProtocol = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(value)

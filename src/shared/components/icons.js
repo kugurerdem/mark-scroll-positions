@@ -1,6 +1,6 @@
 // @ts-check
 
-import {h} from './ui.js'
+import {h} from '../lib/ui.js'
 
 /**
  * @typedef {

@@ -1,19 +1,19 @@
 // @ts-check
 
-import {createContext, html, render, useCallback, useContext, useEffect, useState} from './ui.js'
-import {getAppRoot} from './app-root.js'
-import {Icon} from './icons.js'
-import {createPageIdentity} from './page-identity.js'
-import {capturePageScrollSnapshot, jumpToScrollPosition} from './page-dom.js'
-import {getScrollInsertPosition} from './preferences.js'
+import {createContext, html, render, useCallback, useContext, useEffect, useState} from '../../shared/lib/ui.js'
+import {getAppRoot} from '../../shared/lib/app-root.js'
+import {Icon} from '../../shared/components/icons.js'
+import {createPageIdentity} from '../../shared/lib/page-identity.js'
+import {capturePageScrollSnapshot, jumpToScrollPosition} from '../../shared/lib/page-dom.js'
+import {getScrollInsertPosition} from '../../shared/lib/preferences.js'
 import {
     getPageData as getStoredPageData,
     setPageData as setStoredPageData,
-} from './page-store.js'
-import {GenericScroll} from './scroll-card.js'
-import {SortableScrollList} from './sortable-scroll-list.js'
-import {subscribeToStorageKey} from './storage.js'
-import {initializeTheme} from './theme.js'
+} from '../../shared/lib/page-store.js'
+import {GenericScroll} from '../../shared/components/scroll-card.js'
+import {SortableScrollList} from '../../shared/components/sortable-scroll-list.js'
+import {subscribeToStorageKey} from '../../shared/lib/storage.js'
+import {initializeTheme} from '../../shared/lib/theme.js'
 import {
     QUERY_IDENTITY_SETTINGS_KEY,
     getQueryIdentitySettings,
@@ -21,15 +21,15 @@ import {
     resolveQueryIdentityMode,
     setHostnameQueryIdentityMode,
     setQueryIdentitySettings as setStoredQueryIdentitySettings,
-} from './url-identity.js'
-import {usePageDataState} from './use-page-data-state.js'
+} from '../../shared/lib/url-identity.js'
+import {usePageDataState} from '../../shared/hooks/use-page-data-state.js'
 
-/** @typedef {import('./page-store.js').PageData} PageData */
-/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
-/** @typedef {import('./url-identity.js').QueryIdentityMode} QueryIdentityMode */
-/** @typedef {import('./url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
-/** @typedef {import('./page-dom.js').PageScrollSnapshot} PageScrollSnapshot */
+/** @typedef {import('../../shared/lib/page-store.js').PageData} PageData */
+/** @typedef {import('../../shared/lib/page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('../../shared/lib/page-identity.js').PageIdentity} PageIdentity */
+/** @typedef {import('../../shared/lib/url-identity.js').QueryIdentityMode} QueryIdentityMode */
+/** @typedef {import('../../shared/lib/url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('../../shared/lib/page-dom.js').PageScrollSnapshot} PageScrollSnapshot */
 
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
 /** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
@@ -169,7 +169,7 @@ const App = ({
             return
         }
 
-        window.open('./settings.html')
+        window.open(chrome.runtime.getURL('src/pages/settings/index.html'))
     }, [])
 
     const onSave = useCallback(async () => {
@@ -187,7 +187,7 @@ const App = ({
     }, [activeTab.id, pageIdentity])
 
     const onOpenAllMarks = useCallback(async () => {
-        const manageURL = chrome.runtime.getURL('src/manage.html')
+        const manageURL = chrome.runtime.getURL('src/pages/manage/index.html')
         const [existingManageTab] = await chrome.tabs.query({url: manageURL})
 
         if (existingManageTab?.id) {

@@ -1,25 +1,25 @@
 // @ts-check
 
-import {html, render, useEffect, useState} from './ui.js'
-import {getAppRoot} from './app-root.js'
-import {Icon} from './icons.js'
-import {getNavigablePageURL} from './page-identity.js'
-import {jumpToScrollPosition} from './page-dom.js'
+import {html, render, useEffect, useState} from '../../shared/lib/ui.js'
+import {getAppRoot} from '../../shared/lib/app-root.js'
+import {Icon} from '../../shared/components/icons.js'
+import {getNavigablePageURL} from '../../shared/lib/page-identity.js'
+import {jumpToScrollPosition} from '../../shared/lib/page-dom.js'
 import {
     applyPageRecordChanges,
     getAllPageRecords,
     removePageData,
-} from './page-store.js'
-import {GenericScroll} from './scroll-card.js'
-import {SortableScrollList} from './sortable-scroll-list.js'
-import {subscribeToLocalStorageChanges} from './storage.js'
-import {initializeTheme} from './theme.js'
-import {usePageDataState} from './use-page-data-state.js'
+} from '../../shared/lib/page-store.js'
+import {GenericScroll} from '../../shared/components/scroll-card.js'
+import {SortableScrollList} from '../../shared/components/sortable-scroll-list.js'
+import {subscribeToLocalStorageChanges} from '../../shared/lib/storage.js'
+import {initializeTheme} from '../../shared/lib/theme.js'
+import {usePageDataState} from '../../shared/hooks/use-page-data-state.js'
 
-/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
-/** @typedef {import('./page-store.js').PageRecord} PageRecord */
-/** @typedef {import('./page-store.js').PageRecordByStorageKey} PageRecordByStorageKey */
-/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('../../shared/lib/page-identity.js').PageIdentity} PageIdentity */
+/** @typedef {import('../../shared/lib/page-store.js').PageRecord} PageRecord */
+/** @typedef {import('../../shared/lib/page-store.js').PageRecordByStorageKey} PageRecordByStorageKey */
+/** @typedef {import('../../shared/lib/page-store.js').ScrollDetails} ScrollDetails */
 
 const {values} = Object
 const allOrigins = ['<all_urls>']

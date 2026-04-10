@@ -1,16 +1,16 @@
 // @ts-check
 
-import {useEffect, useState} from './ui.js'
+import {useEffect, useState} from '../lib/ui.js'
 import {
     createEmptyPageData,
     getPageData as getStoredPageData,
     setPageData as setStoredPageData,
     subscribeToPageData,
-} from './page-store.js'
+} from '../lib/page-store.js'
 
-/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./page-store.js').PageData} PageData */
-/** @typedef {import('./page-identity.js').PageIdentity} PageIdentity */
+/** @typedef {import('../lib/page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('../lib/page-store.js').PageData} PageData */
+/** @typedef {import('../lib/page-identity.js').PageIdentity} PageIdentity */
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
 /** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
 

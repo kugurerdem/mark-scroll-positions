@@ -1,11 +1,11 @@
 // @ts-check
 
-import {h, html, useState} from './ui.js'
+import {h, html, useState} from '../lib/ui.js'
 import {Icon} from './icons.js'
 import {Button, TextInput} from './form-controls.js'
 
-/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
-/** @typedef {import('./page-store.js').PageData} PageData */
+/** @typedef {import('../lib/page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('../lib/page-store.js').PageData} PageData */
 
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
 /** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */

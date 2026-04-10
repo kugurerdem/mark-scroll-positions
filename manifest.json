@@ -4,7 +4,7 @@
     "description": "Mark your scroll locations for later.",
     "version": "1.7.2",
     "action": {
-        "default_popup": "src/index.html"
+        "default_popup": "src/pages/popup/index.html"
     },
     "background": {
         "scripts": [
@@ -13,7 +13,7 @@
         "service_worker": "public/background.js"
     },
     "options_ui": {
-        "page": "src/settings.html",
+        "page": "src/pages/settings/index.html",
         "open_in_tab": true
     },
     "permissions": [

@@ -1,9 +1,9 @@
 // @ts-check
 
-import {html, useRef, useState} from './ui.js'
+import {html, useRef, useState} from '../lib/ui.js'
 
-/** @typedef {import('./page-store.js').PageData} PageData */
-/** @typedef {import('./page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('../lib/page-store.js').PageData} PageData */
+/** @typedef {import('../lib/page-store.js').ScrollDetails} ScrollDetails */
 
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
 /** @typedef {(scrollDetails: ScrollDetails) => unknown} RenderScroll */

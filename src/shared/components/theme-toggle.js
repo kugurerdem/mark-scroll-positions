@@ -1,8 +1,8 @@
 // @ts-check
 
-import {html} from './ui.js'
+import {html} from '../lib/ui.js'
 
-/** @typedef {import('./theme.js').ThemePreference} ThemePreference */
+/** @typedef {import('../lib/theme.js').ThemePreference} ThemePreference */
 
 /**
  * @typedef {object} ThemeToggleProps
