@@ -1,6 +1,6 @@
 // @ts-check
 
-import {h, html, useState} from '../lib/ui.js'
+import {h, html, useEffect, useRef, useState} from '../lib/ui.js'
 import {Icon} from './icons.js'
 import {Button, TextInput} from './form-controls.js'
 
@@ -17,6 +17,8 @@ import {Button, TextInput} from './form-controls.js'
  * @property {PageData} pageData
  * @property {SetPageData} setPageData
  * @property {PatchScroll} patchScroll
+ * @property {boolean} [autoEditName]
+ * @property {() => void} [onAutoEditNameHandled]
  */
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -79,16 +81,33 @@ export const GenericScroll = ({
     pageData,
     setPageData,
     patchScroll,
+    autoEditName = false,
+    onAutoEditNameHandled,
 }) => {
     const {name, note, dateISO, uuid} = scrollDetails
     const [displayNote, setDisplayNote] = useState(Boolean(note))
     const [editingName, setEditingName] = useState(false)
     const [nameValue, setNameValue] = useState(name)
     const [expanded, setExpanded] = useState(false)
+    const nameInputRef = useRef(/** @type {HTMLInputElement | null} */ (null))
 
     const hasNote = note.trim().length > 0
     const percentage = calculateScrollPercentage(scrollDetails)
     const nameInputSize = Math.min(Math.max((nameValue || '').length + 1, 10), 40)
+
+    useEffect(() => {
+        if (!autoEditName) return
+
+        setEditingName(true)
+        onAutoEditNameHandled?.()
+    }, [autoEditName, onAutoEditNameHandled])
+
+    useEffect(() => {
+        if (!editingName) return
+
+        nameInputRef.current?.focus()
+        nameInputRef.current?.select()
+    }, [editingName])
 
     const handleNameBlur = () => {
         setEditingName(false)
@@ -130,6 +149,7 @@ export const GenericScroll = ({
                             onBlur: handleNameBlur,
                             onKeyDown: handleNameKeyDown,
                             draggable: false,
+                            ref: nameInputRef,
                             autoFocus: true,
                             class: 'scroll-card__name-input',
                         })

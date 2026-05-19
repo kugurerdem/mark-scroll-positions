@@ -161,6 +161,9 @@ const App = ({
     onQueryIdentityModeChange,
 }) => {
     const {activeTab, pageIdentity, pageData, setPageData} = useBootContext()
+    const [autoEditScrollId, setAutoEditScrollId] = useState(
+        /** @type {string | null} */ (null)
+    )
     const markCountLabel = `${pageData.scrolls.length} mark${pageData.scrolls.length !== 1 ? 's' : ''}`
 
     const onOpenSettings = useCallback(() => {
@@ -183,7 +186,8 @@ const App = ({
         const snapshot = injectionResults[0]?.result
         if (!snapshot) return
 
-        await saveCurrentMark(pageIdentity, snapshot)
+        const scrollDetails = await saveCurrentMark(pageIdentity, snapshot)
+        setAutoEditScrollId(scrollDetails.uuid)
     }, [activeTab.id, pageIdentity])
 
     const onOpenAllMarks = useCallback(async () => {
@@ -204,7 +208,13 @@ const App = ({
     }, [])
 
     /** @param {ScrollDetails} details */
-    const renderScrollItem = (details) => html`<${Scroll} scrollDetails=${details} />`
+    const renderScrollItem = (details) => html`
+        <${Scroll}
+            scrollDetails=${details}
+            autoEditName=${details.uuid === autoEditScrollId}
+            onAutoEditNameHandled=${() => setAutoEditScrollId(null)}
+        />
+    `
 
     return html`
         <div class="popup animate-fade-in-up">
@@ -291,8 +301,13 @@ const App = ({
     `
 }
 
-/** @param {{scrollDetails: ScrollDetails}} props */
-const Scroll = ({scrollDetails}) => {
+/**
+ * @param {object} props
+ * @param {ScrollDetails} props.scrollDetails
+ * @param {boolean} [props.autoEditName]
+ * @param {() => void} [props.onAutoEditNameHandled]
+ */
+const Scroll = ({scrollDetails, autoEditName = false, onAutoEditNameHandled}) => {
     const {activeTab, pageData, setPageData, patchScroll} = useBootContext()
 
     const onJump = () => {
@@ -312,6 +327,8 @@ const Scroll = ({scrollDetails}) => {
             pageData=${pageData}
             setPageData=${setPageData}
             patchScroll=${patchScroll}
+            autoEditName=${autoEditName}
+            onAutoEditNameHandled=${onAutoEditNameHandled}
         />
     `
 }
@@ -319,7 +336,7 @@ const Scroll = ({scrollDetails}) => {
 /**
  * @param {PageIdentity} pageIdentity
  * @param {PageScrollSnapshot} snapshot
- * @returns {Promise<PageData>}
+ * @returns {Promise<ScrollDetails>}
  */
 const saveCurrentMark = async (pageIdentity, snapshot) => {
     const pageData = await getStoredPageData(pageIdentity)
@@ -349,7 +366,9 @@ const saveCurrentMark = async (pageIdentity, snapshot) => {
         title: snapshot.title || pageData.title,
     }
 
-    return setStoredPageData(pageIdentity, nextPageData)
+    await setStoredPageData(pageIdentity, nextPageData)
+
+    return scrollDetails
 }
 
 void main()
