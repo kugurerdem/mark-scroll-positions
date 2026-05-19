@@ -12,7 +12,7 @@ import {
     normalizeScrollStrategySettings,
     parseScrollStrategy,
     resolveScrollStrategy,
-    setHostnameScrollStrategy,
+    setURLPatternScrollStrategy,
     setScrollStrategySettings as setStoredScrollStrategySettings,
 } from '../../shared/lib/preferences.js'
 import {
@@ -124,7 +124,7 @@ const Boot = ({
         queryIdentitySettings,
         hostname
     )
-    const scrollStrategy = resolveScrollStrategy(scrollStrategySettings, hostname)
+    const scrollStrategy = resolveScrollStrategy(scrollStrategySettings, activeURL)
     const pageIdentity = createPageIdentity(activeURL, queryIdentitySettings)
     const [pageData, setPageData, patchScroll] = usePageDataState(pageIdentity)
 
@@ -165,9 +165,9 @@ const Boot = ({
         (nextStrategy) => {
             /** @param {ScrollStrategySettings} current */
             const updateSettings = (current) => {
-                const nextSettings = setHostnameScrollStrategy(
+                const nextSettings = setURLPatternScrollStrategy(
                     current,
-                    hostname,
+                    activeURL.href,
                     nextStrategy
                 )
 
@@ -177,7 +177,7 @@ const Boot = ({
 
             setScrollStrategySettings(updateSettings)
         },
-        [hostname]
+        [activeURL.href]
     )
 
     return html`
@@ -356,13 +356,13 @@ const App = ({
 
             <div class="popup__strategy-row">
                 <span class="popup__strategy-label-wrap">
-                    <span class="popup__strategy-label">Jump strategy</span>
+                    <span class="popup__strategy-label">This website's default</span>
                     <button
                         type="button"
                         onClick=${onOpenSettings}
                         class="popup__info-button"
-                        title="Page ratio jumps to the same relative position in the full page. Screen ratio jumps using the saved top position relative to the screen height, which can work better when page content grows or shrinks."
-                        aria-label="Page ratio jumps to the same relative position in the full page. Screen ratio jumps using the saved top position relative to the screen height, which can work better when page content grows or shrinks."
+                        title=${`Sets the default jump strategy for ${hostname}. Page ratio jumps to the same relative position in the full page. Screen ratio uses the saved top position relative to screen height, which can work better when page content grows or shrinks.`}
+                        aria-label=${`Sets the default jump strategy for ${hostname}. Page ratio jumps to the same relative position in the full page. Screen ratio uses the saved top position relative to screen height, which can work better when page content grows or shrinks.`}
                     >
                         <${Icon} icon="circleInfo" className="icon icon--xs" />
                     </button>

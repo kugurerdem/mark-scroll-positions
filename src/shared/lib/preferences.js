@@ -6,6 +6,7 @@
 /**
  * @typedef {object} ScrollStrategySettings
  * @property {ScrollStrategy} globalStrategy
+ * @property {Record<string, ScrollStrategy>} perURLPatternStrategy
  * @property {Record<string, ScrollStrategy>} perHostStrategy
  */
 
@@ -17,6 +18,7 @@ const hasOwnProperty = Object.prototype.hasOwnProperty
 /** @type {ScrollStrategySettings} */
 export const defaultScrollStrategySettings = {
     globalStrategy: 'page-ratio',
+    perURLPatternStrategy: {},
     perHostStrategy: {},
 }
 
@@ -48,21 +50,35 @@ export const setScrollInsertPosition = async (position) => {
     await chrome.storage.local.set({[MARK_INSERT_POSITION_KEY]: position})
 }
 
-/** @param {string} hostname @returns {string | null} */
-const normalizeHostname = (hostname) => {
-    const normalizedHostname = hostname.trim().toLowerCase()
-    return normalizedHostname || null
+/** @param {string} pattern @returns {string | null} */
+export const normalizeURLPattern = (pattern) => {
+    const trimmed = pattern.trim().toLowerCase()
+    if (!trimmed) return null
+
+    const normalizedURL = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+        ? trimmed
+        : `https://${trimmed}`
+
+    try {
+        const parsedURL = new URL(normalizedURL)
+        if (!parsedURL.hostname) return null
+
+        const pathname = parsedURL.pathname.replace(/\/+$/, '')
+        return parsedURL.hostname.concat(pathname === '/' ? '' : pathname)
+    } catch {
+        return null
+    }
 }
 
 /** @param {unknown} value @returns {Record<string, ScrollStrategy>} */
-const normalizePerHostStrategy = (value) => {
+const normalizePerURLPatternStrategy = (value) => {
     if (!isRecord(value)) return {}
 
-    return Object.entries(value).reduce((acc, [hostname, strategy]) => {
-        const normalizedHostname = normalizeHostname(hostname)
-        if (!normalizedHostname || !isScrollStrategy(strategy)) return acc
+    return Object.entries(value).reduce((acc, [pattern, strategy]) => {
+        const normalizedPattern = normalizeURLPattern(pattern)
+        if (!normalizedPattern || !isScrollStrategy(strategy)) return acc
 
-        acc[normalizedHostname] = strategy
+        acc[normalizedPattern] = strategy
         return acc
     }, /** @type {Record<string, ScrollStrategy>} */ ({}))
 }
@@ -72,27 +88,45 @@ export const normalizeScrollStrategySettings = (value) => {
     if (!isRecord(value)) {
         return {
             ...defaultScrollStrategySettings,
+            perURLPatternStrategy: {},
             perHostStrategy: {},
         }
+    }
+
+    const perURLPatternStrategy = {
+        ...normalizePerURLPatternStrategy(value.perHostStrategy),
+        ...normalizePerURLPatternStrategy(value.perURLPatternStrategy),
     }
 
     return {
         globalStrategy: isScrollStrategy(value.globalStrategy)
             ? value.globalStrategy
             : defaultScrollStrategySettings.globalStrategy,
-        perHostStrategy: normalizePerHostStrategy(value.perHostStrategy),
+        perURLPatternStrategy,
+        perHostStrategy: perURLPatternStrategy,
     }
 }
 
-/** @param {ScrollStrategySettings} settings @param {string} hostname @returns {ScrollStrategy} */
-export const resolveScrollStrategy = (settings, hostname) => {
-    const normalizedHostname = normalizeHostname(hostname)
+/** @param {string} pagePattern @param {string} rulePattern @returns {boolean} */
+const matchesURLPattern = (pagePattern, rulePattern) => {
+    if (pagePattern === rulePattern) return true
+    return pagePattern.startsWith(rulePattern.endsWith('/') ? rulePattern : `${rulePattern}/`)
+}
+
+/** @param {ScrollStrategySettings} settings @param {string | URL} urlOrPattern @returns {ScrollStrategy} */
+export const resolveScrollStrategy = (settings, urlOrPattern) => {
+    const normalizedPattern = normalizeURLPattern(String(urlOrPattern))
+    if (!normalizedPattern) return settings.globalStrategy
+
+    const [matchedPattern] = Object.keys(settings.perURLPatternStrategy)
+        .filter((pattern) => matchesURLPattern(normalizedPattern, pattern))
+        .sort((left, right) => right.length - left.length)
 
     if (
-        normalizedHostname &&
-        hasOwnProperty.call(settings.perHostStrategy, normalizedHostname)
+        matchedPattern &&
+        hasOwnProperty.call(settings.perURLPatternStrategy, matchedPattern)
     ) {
-        return settings.perHostStrategy[normalizedHostname]
+        return settings.perURLPatternStrategy[matchedPattern]
     }
 
     return settings.globalStrategy
@@ -105,10 +139,20 @@ export const resolveScrollStrategy = (settings, hostname) => {
  */
 export const setGlobalScrollStrategy = (settings, strategy) => ({
     globalStrategy: strategy,
-    perHostStrategy: Object.entries(settings.perHostStrategy).reduce(
-        (nextPerHostStrategy, [hostname, hostStrategy]) => {
-            if (hostStrategy !== strategy) {
-                nextPerHostStrategy[hostname] = hostStrategy
+    perURLPatternStrategy: Object.entries(settings.perURLPatternStrategy).reduce(
+        (nextPerURLPatternStrategy, [pattern, patternStrategy]) => {
+            if (patternStrategy !== strategy) {
+                nextPerURLPatternStrategy[pattern] = patternStrategy
+            }
+
+            return nextPerURLPatternStrategy
+        },
+        /** @type {Record<string, ScrollStrategy>} */ ({})
+    ),
+    perHostStrategy: Object.entries(settings.perURLPatternStrategy).reduce(
+        (nextPerHostStrategy, [pattern, patternStrategy]) => {
+            if (patternStrategy !== strategy) {
+                nextPerHostStrategy[pattern] = patternStrategy
             }
 
             return nextPerHostStrategy
@@ -119,51 +163,56 @@ export const setGlobalScrollStrategy = (settings, strategy) => ({
 
 /**
  * @param {ScrollStrategySettings} settings
- * @param {string} hostname
+ * @param {string} pattern
  * @param {ScrollStrategy} strategy
  * @returns {ScrollStrategySettings}
  */
-export const setHostnameScrollStrategy = (settings, hostname, strategy) => {
-    const normalizedHostname = normalizeHostname(hostname)
-    if (!normalizedHostname) return settings
+export const setURLPatternScrollStrategy = (settings, pattern, strategy) => {
+    const normalizedPattern = normalizeURLPattern(pattern)
+    if (!normalizedPattern) return settings
 
-    const nextPerHostStrategy = {...settings.perHostStrategy}
+    const nextPerURLPatternStrategy = {...settings.perURLPatternStrategy}
 
     if (strategy === settings.globalStrategy) {
-        delete nextPerHostStrategy[normalizedHostname]
+        delete nextPerURLPatternStrategy[normalizedPattern]
     } else {
-        nextPerHostStrategy[normalizedHostname] = strategy
+        nextPerURLPatternStrategy[normalizedPattern] = strategy
     }
 
     return {
         ...settings,
-        perHostStrategy: nextPerHostStrategy,
+        perURLPatternStrategy: nextPerURLPatternStrategy,
+        perHostStrategy: nextPerURLPatternStrategy,
     }
 }
 
 /**
  * @param {ScrollStrategySettings} settings
- * @param {string} hostname
+ * @param {string} pattern
  * @returns {ScrollStrategySettings}
  */
-export const removeHostnameScrollStrategy = (settings, hostname) => {
-    const normalizedHostname = normalizeHostname(hostname)
+export const removeURLPatternScrollStrategy = (settings, pattern) => {
+    const normalizedPattern = normalizeURLPattern(pattern)
 
     if (
-        !normalizedHostname ||
-        !hasOwnProperty.call(settings.perHostStrategy, normalizedHostname)
+        !normalizedPattern ||
+        !hasOwnProperty.call(settings.perURLPatternStrategy, normalizedPattern)
     ) {
         return settings
     }
 
-    const nextPerHostStrategy = {...settings.perHostStrategy}
-    delete nextPerHostStrategy[normalizedHostname]
+    const nextPerURLPatternStrategy = {...settings.perURLPatternStrategy}
+    delete nextPerURLPatternStrategy[normalizedPattern]
 
     return {
         ...settings,
-        perHostStrategy: nextPerHostStrategy,
+        perURLPatternStrategy: nextPerURLPatternStrategy,
+        perHostStrategy: nextPerURLPatternStrategy,
     }
 }
+
+export const setHostnameScrollStrategy = setURLPatternScrollStrategy
+export const removeHostnameScrollStrategy = removeURLPatternScrollStrategy
 
 /** @returns {Promise<ScrollStrategySettings>} */
 export const getScrollStrategySettings = async () => {

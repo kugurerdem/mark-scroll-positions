@@ -118,7 +118,7 @@ const App = ({pageRecordsByStorageKey}) => {
             details,
             resolveScrollStrategy(
                 scrollStrategySettings,
-                getPageHostname(pageIdentity)
+                getNavigablePageURL(pageIdentity)
             )
         )
     }
@@ -309,15 +309,6 @@ const requestAllSitesPermission = async () => {
     }
 }
 
-/** @param {PageIdentity} pageIdentity @returns {string} */
-const getPageHostname = (pageIdentity) => {
-    try {
-        return new URL(getNavigablePageURL(pageIdentity)).hostname
-    } catch {
-        return pageIdentity.storageKey.split('/')[0] || ''
-    }
-}
-
 /**
  * @param {PageIdentity} pageIdentity
  * @param {ScrollDetails} scrollDetails
@@ -357,7 +348,7 @@ const Page = ({identity, scrollStrategySettings, onMissingPermission}) => {
     const href = getNavigablePageURL(identity)
     const scrollStrategy = resolveScrollStrategy(
         scrollStrategySettings,
-        getPageHostname(identity)
+        href
     )
 
     /** @param {ScrollDetails} details */

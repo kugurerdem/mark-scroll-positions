@@ -17,10 +17,11 @@ import {
     getScrollInsertPosition,
     getScrollStrategySettings,
     isScrollInsertPosition,
+    normalizeURLPattern,
     parseScrollStrategy,
-    removeHostnameScrollStrategy,
+    removeURLPatternScrollStrategy,
     setGlobalScrollStrategy,
-    setHostnameScrollStrategy,
+    setURLPatternScrollStrategy,
     setScrollInsertPosition,
     setScrollStrategySettings as setStoredScrollStrategySettings,
 } from '../../shared/lib/preferences.js'
@@ -80,10 +81,10 @@ const App = () => {
     const [newHostnameMode, setNewHostnameMode] =
         useState(/** @type {QueryIdentityMode} */ ('include'))
     const [hostnameError, setHostnameError] = useState(/** @type {string | null} */ (null))
-    const [newStrategyHostname, setNewStrategyHostname] = useState('')
-    const [newHostnameStrategy, setNewHostnameStrategy] =
+    const [newStrategyPattern, setNewStrategyPattern] = useState('')
+    const [newPatternStrategy, setNewPatternStrategy] =
         useState(/** @type {ScrollStrategy} */ ('viewport-ratio'))
-    const [strategyHostnameError, setStrategyHostnameError] =
+    const [strategyPatternError, setStrategyPatternError] =
         useState(/** @type {string | null} */ (null))
 
     useEffect(() => {
@@ -253,60 +254,60 @@ const App = () => {
         [updateScrollStrategySettings]
     )
 
-    const onHostnameStrategyChange = useCallback(
-        /** @param {string} hostname @param {ScrollStrategy} strategy */
-        (hostname, strategy) => {
+    const onURLPatternStrategyChange = useCallback(
+        /** @param {string} pattern @param {ScrollStrategy} strategy */
+        (pattern, strategy) => {
             updateScrollStrategySettings(
                 /** @param {ScrollStrategySettings} current */
                 (current) =>
-                setHostnameScrollStrategy(current, hostname, strategy)
+                setURLPatternScrollStrategy(current, pattern, strategy)
             )
         },
         [updateScrollStrategySettings]
     )
 
-    const onRemoveHostnameStrategyOverride = useCallback(
-        /** @param {string} hostname */
-        (hostname) => {
+    const onRemoveURLPatternStrategyOverride = useCallback(
+        /** @param {string} pattern */
+        (pattern) => {
             updateScrollStrategySettings(
                 /** @param {ScrollStrategySettings} current */
                 (current) =>
-                removeHostnameScrollStrategy(current, hostname)
+                removeURLPatternScrollStrategy(current, pattern)
             )
         },
         [updateScrollStrategySettings]
     )
 
-    const onAddHostnameStrategyOverride = useCallback(() => {
-        const normalizedHostname = normalizeHostnameInput(newStrategyHostname)
+    const onAddURLPatternStrategyOverride = useCallback(() => {
+        const normalizedPattern = normalizeURLPattern(newStrategyPattern)
 
-        if (!normalizedHostname) {
-            setStrategyHostnameError('Enter a valid hostname, such as news.ycombinator.com.')
+        if (!normalizedPattern) {
+            setStrategyPatternError('Enter a valid hostname or path, such as news.ycombinator.com/item.')
             return
         }
 
-        setStrategyHostnameError(null)
+        setStrategyPatternError(null)
         updateScrollStrategySettings(
             /** @param {ScrollStrategySettings} current */
             (current) =>
-                setHostnameScrollStrategy(
+                setURLPatternScrollStrategy(
                     current,
-                    normalizedHostname,
-                    newHostnameStrategy
+                    normalizedPattern,
+                    newPatternStrategy
                 )
         )
-        setNewStrategyHostname('')
-    }, [newStrategyHostname, newHostnameStrategy, updateScrollStrategySettings])
+        setNewStrategyPattern('')
+    }, [newStrategyPattern, newPatternStrategy, updateScrollStrategySettings])
 
     const hostnameEntries = Object.entries(queryIdentitySettings.perHostMode).sort(
         ([leftHostname], [rightHostname]) =>
             leftHostname.localeCompare(rightHostname)
     )
-    const strategyHostnameEntries = Object.entries(
-        scrollStrategySettings.perHostStrategy
+    const strategyPatternEntries = Object.entries(
+        scrollStrategySettings.perURLPatternStrategy
     ).sort(
-        ([leftHostname], [rightHostname]) =>
-            leftHostname.localeCompare(rightHostname)
+        ([leftPattern], [rightPattern]) =>
+            leftPattern.localeCompare(rightPattern)
     )
 
     return html`
@@ -364,128 +365,138 @@ const App = () => {
                 </div>
 
                 <div class="settings-section">
-                    <p class="settings-section__eyebrow">Jump Strategy</p>
-                    <div class="segmented-control">
+                    <p class="settings-section__eyebrow">Jump Strategy Rules</p>
+                    <div class="settings-section__help settings-section__help--spaced">
+                        <p>The Default rule is used unless a more specific hostname or path prefix matches.</p>
+                        <p>
+                            Page ratio uses the saved position relative to the full page height. Use it for pages where
+                            the overall document structure stays stable.
+                        </p>
+                        <p>
+                            Screen ratio uses the saved top position relative to the viewport height. Use it for pages
+                            that append content, such as chats or comment sections.
+                        </p>
+                        <p>
+                            If the page has not changed, both strategies should usually land in the same place.
+                            The difference is how jumps behave when content is added or removed after the mark was
+                            created.
+                        </p>
+                    </div>
+
+                    <div class="settings-rule-builder">
+                        <input
+                            value=${newStrategyPattern}
+                            placeholder="example.com/docs"
+                            onInput=${
+                                /** @param {InputEvent & {currentTarget: HTMLInputElement}} event */
+                                (event) => {
+                                    setNewStrategyPattern(event.currentTarget.value)
+                                    setStrategyPatternError(null)
+                                }
+                            }
+                            onKeyDown=${
+                                /** @param {KeyboardEvent} event */
+                                (event) => {
+                                    if (event.key !== 'Enter') return
+                                    event.preventDefault()
+                                    onAddURLPatternStrategyOverride()
+                                }
+                            }
+                            class="settings-input settings-input--fill"
+                        />
+                        <select
+                            value=${newPatternStrategy}
+                            onChange=${
+                                /** @param {Event & {currentTarget: HTMLSelectElement}} event */
+                                (event) => {
+                                    const nextStrategy = parseScrollStrategy(event.currentTarget.value)
+                                    if (nextStrategy) {
+                                        setNewPatternStrategy(nextStrategy)
+                                    }
+                                }
+                            }
+                            class="settings-rule-item__select"
+                        >
+                            <option value="page-ratio">Page ratio</option>
+                            <option value="viewport-ratio">Screen ratio</option>
+                        </select>
                         <button
                             type="button"
-                            onClick=${() => onGlobalScrollStrategyChange('page-ratio')}
-                            class=${`segmented-control__button${
-                                scrollStrategySettings.globalStrategy === 'page-ratio'
-                                    ? ' segmented-control__button--active'
-                                    : ''
-                            }`}
+                            onClick=${onAddURLPatternStrategyOverride}
+                            class="button button--primary settings-add-button"
                         >
-                            Page ratio
-                        </button>
-                        <button
-                            type="button"
-                            onClick=${() => onGlobalScrollStrategyChange('viewport-ratio')}
-                            class=${`segmented-control__button${
-                                scrollStrategySettings.globalStrategy === 'viewport-ratio'
-                                    ? ' segmented-control__button--active'
-                                    : ''
-                            }`}
-                        >
-                            Screen ratio
+                            Add
                         </button>
                     </div>
-                    <p class="settings-section__help settings-section__help--spaced">
-                        Page ratio uses the saved position relative to page height. Screen ratio uses the saved top
-                        offset relative to viewport height.
-                    </p>
 
-                    <div class="settings-subsection">
-                        <p class="settings-section__eyebrow">Site-Specific Strategies</p>
-                        <div class="settings-rule-builder">
-                            <input
-                                value=${newStrategyHostname}
-                                placeholder="example.com"
-                                onInput=${
-                                    /** @param {InputEvent & {currentTarget: HTMLInputElement}} event */
-                                    (event) => {
-                                        setNewStrategyHostname(event.currentTarget.value)
-                                        setStrategyHostnameError(null)
-                                    }
-                                }
-                                onKeyDown=${
-                                    /** @param {KeyboardEvent} event */
-                                    (event) => {
-                                        if (event.key !== 'Enter') return
-                                        event.preventDefault()
-                                        onAddHostnameStrategyOverride()
-                                    }
-                                }
-                                class="settings-input settings-input--fill"
-                            />
+                    ${strategyPatternError
+                        ? html`<p class="settings-error">${strategyPatternError}</p>`
+                        : null}
+
+                    <div class="settings-rule-list">
+                        <div class="settings-rule-item">
+                            <span class="settings-rule-item__hostname">Default</span>
                             <select
-                                value=${newHostnameStrategy}
+                                value=${scrollStrategySettings.globalStrategy}
                                 onChange=${
                                     /** @param {Event & {currentTarget: HTMLSelectElement}} event */
                                     (event) => {
-                                        const nextStrategy = parseScrollStrategy(event.currentTarget.value)
+                                        const nextStrategy = parseScrollStrategy(
+                                            event.currentTarget.value
+                                        )
                                         if (nextStrategy) {
-                                            setNewHostnameStrategy(nextStrategy)
+                                            onGlobalScrollStrategyChange(nextStrategy)
                                         }
                                     }
                                 }
-                                class="settings-select"
+                                class="settings-rule-item__select"
                             >
                                 <option value="page-ratio">Page ratio</option>
                                 <option value="viewport-ratio">Screen ratio</option>
                             </select>
                             <button
                                 type="button"
-                                onClick=${onAddHostnameStrategyOverride}
-                                class="button button--primary settings-add-button"
+                                disabled=${true}
+                                title="The default rule cannot be removed"
+                                aria-label="The default rule cannot be removed"
+                                class="icon-button settings-rule-item__remove"
                             >
-                                Add
+                                <${Icon} icon="trashCan" className="icon icon--xs" />
                             </button>
                         </div>
 
-                        ${strategyHostnameError
-                            ? html`<p class="settings-error">${strategyHostnameError}</p>`
-                            : null}
-
-                        ${strategyHostnameEntries.length === 0
-                            ? html`
-                                <p class="settings-empty-state">No site-specific strategies yet.</p>
-                            `
-                            : html`
-                                <div class="settings-rule-list">
-                                    ${strategyHostnameEntries.map(([hostname, strategy]) => html`
-                                        <div key=${hostname} class="settings-rule-item">
-                                            <span class="settings-rule-item__hostname">${hostname}</span>
-                                            <select
-                                                value=${strategy}
-                                                onChange=${
-                                                    /** @param {Event & {currentTarget: HTMLSelectElement}} event */
-                                                    (event) => {
-                                                        const nextStrategy = parseScrollStrategy(
-                                                            event.currentTarget.value
-                                                        )
-                                                        if (nextStrategy) {
-                                                            onHostnameStrategyChange(hostname, nextStrategy)
-                                                        }
-                                                    }
-                                                }
-                                                class="settings-rule-item__select"
-                                            >
-                                                <option value="page-ratio">Page ratio</option>
-                                                <option value="viewport-ratio">Screen ratio</option>
-                                            </select>
-                                            <button
-                                                type="button"
-                                                onClick=${() => onRemoveHostnameStrategyOverride(hostname)}
-                                                title="Remove strategy rule"
-                                                aria-label=${`Remove strategy rule for ${hostname}`}
-                                                class="icon-button settings-rule-item__remove"
-                                            >
-                                                <${Icon} icon="trashCan" className="icon icon--xs" />
-                                            </button>
-                                        </div>
-                                    `)}
-                                </div>
-                            `}
+                        ${strategyPatternEntries.map(([pattern, strategy]) => html`
+                            <div key=${pattern} class="settings-rule-item">
+                                <span class="settings-rule-item__hostname">${pattern}</span>
+                                <select
+                                    value=${strategy}
+                                    onChange=${
+                                        /** @param {Event & {currentTarget: HTMLSelectElement}} event */
+                                        (event) => {
+                                            const nextStrategy = parseScrollStrategy(
+                                                event.currentTarget.value
+                                            )
+                                            if (nextStrategy) {
+                                                onURLPatternStrategyChange(pattern, nextStrategy)
+                                            }
+                                        }
+                                    }
+                                    class="settings-rule-item__select"
+                                >
+                                    <option value="page-ratio">Page ratio</option>
+                                    <option value="viewport-ratio">Screen ratio</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick=${() => onRemoveURLPatternStrategyOverride(pattern)}
+                                    title="Remove strategy rule"
+                                    aria-label=${`Remove strategy rule for ${pattern}`}
+                                    class="icon-button settings-rule-item__remove"
+                                >
+                                    <${Icon} icon="trashCan" className="icon icon--xs" />
+                                </button>
+                            </div>
+                        `)}
                     </div>
                 </div>
 
