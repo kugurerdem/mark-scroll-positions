@@ -12,9 +12,17 @@ import {Icon} from '../../shared/components/icons.js'
 import {ThemeToggle} from '../../shared/components/theme-toggle.js'
 import {
     MARK_INSERT_POSITION_KEY,
+    SCROLL_STRATEGY_SETTINGS_KEY,
+    defaultScrollStrategySettings,
     getScrollInsertPosition,
+    getScrollStrategySettings,
     isScrollInsertPosition,
+    parseScrollStrategy,
+    removeHostnameScrollStrategy,
+    setGlobalScrollStrategy,
+    setHostnameScrollStrategy,
     setScrollInsertPosition,
+    setScrollStrategySettings as setStoredScrollStrategySettings,
 } from '../../shared/lib/preferences.js'
 import {subscribeToStorageKey} from '../../shared/lib/storage.js'
 import {
@@ -32,6 +40,8 @@ import {
 /** @typedef {import('../../shared/lib/url-identity.js').QueryIdentityMode} QueryIdentityMode */
 /** @typedef {import('../../shared/lib/url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollInsertPosition} ScrollInsertPosition */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollStrategy} ScrollStrategy */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
 
 /** @param {string} value @returns {boolean} */
 const hasProtocol = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
@@ -64,10 +74,17 @@ const App = () => {
         useState(/** @type {ScrollInsertPosition} */ ('bottom'))
     const [queryIdentitySettings, setQueryIdentitySettings] =
         useState(defaultQueryIdentitySettings)
+    const [scrollStrategySettings, setScrollStrategySettings] =
+        useState(defaultScrollStrategySettings)
     const [newHostname, setNewHostname] = useState('')
     const [newHostnameMode, setNewHostnameMode] =
         useState(/** @type {QueryIdentityMode} */ ('include'))
     const [hostnameError, setHostnameError] = useState(/** @type {string | null} */ (null))
+    const [newStrategyHostname, setNewStrategyHostname] = useState('')
+    const [newHostnameStrategy, setNewHostnameStrategy] =
+        useState(/** @type {ScrollStrategy} */ ('viewport-ratio'))
+    const [strategyHostnameError, setStrategyHostnameError] =
+        useState(/** @type {string | null} */ (null))
 
     useEffect(() => {
         let isMounted = true
@@ -76,11 +93,13 @@ const App = () => {
             getThemePreference(),
             getScrollInsertPosition(),
             getQueryIdentitySettings(),
-        ]).then(([preference, position, settings]) => {
+            getScrollStrategySettings(),
+        ]).then(([preference, position, settings, strategySettings]) => {
             if (!isMounted) return
             setThemePreference(preference)
             setMarkInsertPosition(position)
             setQueryIdentitySettings(settings)
+            setScrollStrategySettings(strategySettings)
         })
 
         const unsubscribe = subscribeThemePreference((preference) => {
@@ -104,12 +123,20 @@ const App = () => {
                 setQueryIdentitySettings(await getQueryIdentitySettings())
             }
         )
+        const unsubscribeScrollStrategySettings = subscribeToStorageKey(
+            SCROLL_STRATEGY_SETTINGS_KEY,
+            async () => {
+                if (!isMounted) return
+                setScrollStrategySettings(await getScrollStrategySettings())
+            }
+        )
 
         return () => {
             isMounted = false
             unsubscribe()
             unsubscribeMarkInsertPosition()
             unsubscribeQueryIdentitySettings()
+            unsubscribeScrollStrategySettings()
         }
     }, [])
 
@@ -142,6 +169,21 @@ const App = () => {
             }
 
             setQueryIdentitySettings(applyUpdate)
+        },
+        []
+    )
+
+    const updateScrollStrategySettings = useCallback(
+        /** @param {(current: ScrollStrategySettings) => ScrollStrategySettings} updater */
+        (updater) => {
+            /** @type {(current: ScrollStrategySettings) => ScrollStrategySettings} */
+            const applyUpdate = (current) => {
+                const next = updater(current)
+                void setStoredScrollStrategySettings(next)
+                return next
+            }
+
+            setScrollStrategySettings(applyUpdate)
         },
         []
     )
@@ -199,7 +241,70 @@ const App = () => {
         setNewHostname('')
     }, [newHostname, newHostnameMode, updateQueryIdentitySettings])
 
+    const onGlobalScrollStrategyChange = useCallback(
+        /** @param {ScrollStrategy} strategy */
+        (strategy) => {
+            updateScrollStrategySettings(
+                /** @param {ScrollStrategySettings} current */
+                (current) =>
+                setGlobalScrollStrategy(current, strategy)
+            )
+        },
+        [updateScrollStrategySettings]
+    )
+
+    const onHostnameStrategyChange = useCallback(
+        /** @param {string} hostname @param {ScrollStrategy} strategy */
+        (hostname, strategy) => {
+            updateScrollStrategySettings(
+                /** @param {ScrollStrategySettings} current */
+                (current) =>
+                setHostnameScrollStrategy(current, hostname, strategy)
+            )
+        },
+        [updateScrollStrategySettings]
+    )
+
+    const onRemoveHostnameStrategyOverride = useCallback(
+        /** @param {string} hostname */
+        (hostname) => {
+            updateScrollStrategySettings(
+                /** @param {ScrollStrategySettings} current */
+                (current) =>
+                removeHostnameScrollStrategy(current, hostname)
+            )
+        },
+        [updateScrollStrategySettings]
+    )
+
+    const onAddHostnameStrategyOverride = useCallback(() => {
+        const normalizedHostname = normalizeHostnameInput(newStrategyHostname)
+
+        if (!normalizedHostname) {
+            setStrategyHostnameError('Enter a valid hostname, such as news.ycombinator.com.')
+            return
+        }
+
+        setStrategyHostnameError(null)
+        updateScrollStrategySettings(
+            /** @param {ScrollStrategySettings} current */
+            (current) =>
+                setHostnameScrollStrategy(
+                    current,
+                    normalizedHostname,
+                    newHostnameStrategy
+                )
+        )
+        setNewStrategyHostname('')
+    }, [newStrategyHostname, newHostnameStrategy, updateScrollStrategySettings])
+
     const hostnameEntries = Object.entries(queryIdentitySettings.perHostMode).sort(
+        ([leftHostname], [rightHostname]) =>
+            leftHostname.localeCompare(rightHostname)
+    )
+    const strategyHostnameEntries = Object.entries(
+        scrollStrategySettings.perHostStrategy
+    ).sort(
         ([leftHostname], [rightHostname]) =>
             leftHostname.localeCompare(rightHostname)
     )
@@ -256,6 +361,132 @@ const App = () => {
                     <p class="settings-section__help settings-section__help--spaced">
                         Choose whether new marks are added first or last in the list.
                     </p>
+                </div>
+
+                <div class="settings-section">
+                    <p class="settings-section__eyebrow">Jump Strategy</p>
+                    <div class="segmented-control">
+                        <button
+                            type="button"
+                            onClick=${() => onGlobalScrollStrategyChange('page-ratio')}
+                            class=${`segmented-control__button${
+                                scrollStrategySettings.globalStrategy === 'page-ratio'
+                                    ? ' segmented-control__button--active'
+                                    : ''
+                            }`}
+                        >
+                            Page ratio
+                        </button>
+                        <button
+                            type="button"
+                            onClick=${() => onGlobalScrollStrategyChange('viewport-ratio')}
+                            class=${`segmented-control__button${
+                                scrollStrategySettings.globalStrategy === 'viewport-ratio'
+                                    ? ' segmented-control__button--active'
+                                    : ''
+                            }`}
+                        >
+                            Screen ratio
+                        </button>
+                    </div>
+                    <p class="settings-section__help settings-section__help--spaced">
+                        Page ratio uses the saved position relative to page height. Screen ratio uses the saved top
+                        offset relative to viewport height.
+                    </p>
+
+                    <div class="settings-subsection">
+                        <p class="settings-section__eyebrow">Site-Specific Strategies</p>
+                        <div class="settings-rule-builder">
+                            <input
+                                value=${newStrategyHostname}
+                                placeholder="example.com"
+                                onInput=${
+                                    /** @param {InputEvent & {currentTarget: HTMLInputElement}} event */
+                                    (event) => {
+                                        setNewStrategyHostname(event.currentTarget.value)
+                                        setStrategyHostnameError(null)
+                                    }
+                                }
+                                onKeyDown=${
+                                    /** @param {KeyboardEvent} event */
+                                    (event) => {
+                                        if (event.key !== 'Enter') return
+                                        event.preventDefault()
+                                        onAddHostnameStrategyOverride()
+                                    }
+                                }
+                                class="settings-input settings-input--fill"
+                            />
+                            <select
+                                value=${newHostnameStrategy}
+                                onChange=${
+                                    /** @param {Event & {currentTarget: HTMLSelectElement}} event */
+                                    (event) => {
+                                        const nextStrategy = parseScrollStrategy(event.currentTarget.value)
+                                        if (nextStrategy) {
+                                            setNewHostnameStrategy(nextStrategy)
+                                        }
+                                    }
+                                }
+                                class="settings-select"
+                            >
+                                <option value="page-ratio">Page ratio</option>
+                                <option value="viewport-ratio">Screen ratio</option>
+                            </select>
+                            <button
+                                type="button"
+                                onClick=${onAddHostnameStrategyOverride}
+                                class="button button--primary settings-add-button"
+                            >
+                                Add
+                            </button>
+                        </div>
+
+                        ${strategyHostnameError
+                            ? html`<p class="settings-error">${strategyHostnameError}</p>`
+                            : null}
+
+                        ${strategyHostnameEntries.length === 0
+                            ? html`
+                                <p class="settings-empty-state">No site-specific strategies yet.</p>
+                            `
+                            : html`
+                                <div class="settings-rule-list">
+                                    ${strategyHostnameEntries.map(([hostname, strategy]) => html`
+                                        <div key=${hostname} class="settings-rule-item">
+                                            <span class="settings-rule-item__hostname">${hostname}</span>
+                                            <select
+                                                value=${strategy}
+                                                onChange=${
+                                                    /** @param {Event & {currentTarget: HTMLSelectElement}} event */
+                                                    (event) => {
+                                                        const nextStrategy = parseScrollStrategy(
+                                                            event.currentTarget.value
+                                                        )
+                                                        if (nextStrategy) {
+                                                            onHostnameStrategyChange(hostname, nextStrategy)
+                                                        }
+                                                    }
+                                                }
+                                                class="settings-rule-item__select"
+                                            >
+                                                <option value="page-ratio">Page ratio</option>
+                                                <option value="viewport-ratio">Screen ratio</option>
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick=${() => onRemoveHostnameStrategyOverride(hostname)}
+                                                title="Remove strategy rule"
+                                                aria-label=${`Remove strategy rule for ${hostname}`}
+                                                class="icon-button settings-rule-item__remove"
+                                            >
+                                                <${Icon} icon="trashCan" className="icon icon--xs" />
+                                            </button>
+                                        </div>
+                                    `)}
+                                </div>
+                            `}
+                    </div>
                 </div>
 
                 <div class="settings-section">

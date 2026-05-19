@@ -3,9 +3,11 @@
 import {h, html, useEffect, useRef, useState} from '../lib/ui.js'
 import {Icon} from './icons.js'
 import {Button, TextInput} from './form-controls.js'
+import {calculateScrollProgressPercentage} from '../lib/page-dom.js'
 
 /** @typedef {import('../lib/page-store.js').ScrollDetails} ScrollDetails */
 /** @typedef {import('../lib/page-store.js').PageData} PageData */
+/** @typedef {import('../lib/preferences.js').ScrollStrategy} ScrollStrategy */
 
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
 /** @typedef {(uuid: string, patch: Partial<ScrollDetails>) => Promise<void>} PatchScroll */
@@ -19,6 +21,7 @@ import {Button, TextInput} from './form-controls.js'
  * @property {PatchScroll} patchScroll
  * @property {boolean} [autoEditName]
  * @property {() => void} [onAutoEditNameHandled]
+ * @property {ScrollStrategy} [scrollStrategy]
  */
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -29,11 +32,12 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
 
 /** @param {{percentage: number}} props */
 const CircularProgress = ({percentage}) => {
+    const normalizedPercentage = Math.min(100, Math.max(0, percentage))
     const size = 26
     const strokeWidth = 2.5
     const radius = (size - strokeWidth) / 2
     const circumference = 2 * Math.PI * radius
-    const offset = circumference - (percentage / 100) * circumference
+    const offset = circumference - (normalizedPercentage / 100) * circumference
 
     return html`
         <svg width=${size} height=${size} class="progress-ring">
@@ -61,19 +65,6 @@ const CircularProgress = ({percentage}) => {
     `
 }
 
-/** @param {ScrollDetails} scrollDetails @returns {number} */
-const calculateScrollPercentage = (scrollDetails) => {
-    if (scrollDetails.contentHeight <= 0) return 0
-
-    const rawPercentage =
-        (100 * (scrollDetails.scrollPosition + scrollDetails.viewportHeight)) /
-        scrollDetails.contentHeight
-
-    if (!Number.isFinite(rawPercentage)) return 0
-
-    return Math.min(100, Math.max(0, Math.ceil(rawPercentage)))
-}
-
 /** @param {GenericScrollProps} props */
 export const GenericScroll = ({
     scrollDetails,
@@ -83,6 +74,7 @@ export const GenericScroll = ({
     patchScroll,
     autoEditName = false,
     onAutoEditNameHandled,
+    scrollStrategy = 'page-ratio',
 }) => {
     const {name, note, dateISO, uuid} = scrollDetails
     const [displayNote, setDisplayNote] = useState(Boolean(note))
@@ -92,7 +84,7 @@ export const GenericScroll = ({
     const nameInputRef = useRef(/** @type {HTMLInputElement | null} */ (null))
 
     const hasNote = note.trim().length > 0
-    const percentage = calculateScrollPercentage(scrollDetails)
+    const percentage = calculateScrollProgressPercentage(scrollDetails, scrollStrategy)
     const nameInputSize = Math.min(Math.max((nameValue || '').length + 1, 10), 40)
 
     useEffect(() => {

@@ -5,7 +5,16 @@ import {getAppRoot} from '../../shared/lib/app-root.js'
 import {Icon} from '../../shared/components/icons.js'
 import {createPageIdentity} from '../../shared/lib/page-identity.js'
 import {capturePageScrollSnapshot, jumpToScrollPosition} from '../../shared/lib/page-dom.js'
-import {getScrollInsertPosition} from '../../shared/lib/preferences.js'
+import {
+    SCROLL_STRATEGY_SETTINGS_KEY,
+    getScrollInsertPosition,
+    getScrollStrategySettings,
+    normalizeScrollStrategySettings,
+    parseScrollStrategy,
+    resolveScrollStrategy,
+    setHostnameScrollStrategy,
+    setScrollStrategySettings as setStoredScrollStrategySettings,
+} from '../../shared/lib/preferences.js'
 import {
     getPageData as getStoredPageData,
     setPageData as setStoredPageData,
@@ -29,6 +38,8 @@ import {usePageDataState} from '../../shared/hooks/use-page-data-state.js'
 /** @typedef {import('../../shared/lib/page-identity.js').PageIdentity} PageIdentity */
 /** @typedef {import('../../shared/lib/url-identity.js').QueryIdentityMode} QueryIdentityMode */
 /** @typedef {import('../../shared/lib/url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollStrategy} ScrollStrategy */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
 /** @typedef {import('../../shared/lib/page-dom.js').PageScrollSnapshot} PageScrollSnapshot */
 
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
@@ -67,13 +78,17 @@ const main = async () => {
         throw new Error('Could not resolve the active tab URL')
     }
 
-    const queryIdentitySettings = await getQueryIdentitySettings()
+    const [queryIdentitySettings, scrollStrategySettings] = await Promise.all([
+        getQueryIdentitySettings(),
+        getScrollStrategySettings(),
+    ])
 
     render(
         html`
             <${Boot}
                 activeTab=${activeTab}
                 initialQueryIdentitySettings=${queryIdentitySettings}
+                initialScrollStrategySettings=${scrollStrategySettings}
             />
         `,
         getAppRoot()
@@ -84,12 +99,19 @@ const main = async () => {
  * @typedef {object} BootProps
  * @property {chrome.tabs.Tab} activeTab
  * @property {QueryIdentitySettings} initialQueryIdentitySettings
+ * @property {ScrollStrategySettings} initialScrollStrategySettings
  */
 
 /** @param {BootProps} props */
-const Boot = ({activeTab, initialQueryIdentitySettings}) => {
+const Boot = ({
+    activeTab,
+    initialQueryIdentitySettings,
+    initialScrollStrategySettings,
+}) => {
     const [queryIdentitySettings, setQueryIdentitySettings] =
         useState(initialQueryIdentitySettings)
+    const [scrollStrategySettings, setScrollStrategySettings] =
+        useState(initialScrollStrategySettings)
 
     if (!activeTab.url) {
         throw new Error('Could not resolve the active tab URL')
@@ -102,12 +124,19 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
         queryIdentitySettings,
         hostname
     )
+    const scrollStrategy = resolveScrollStrategy(scrollStrategySettings, hostname)
     const pageIdentity = createPageIdentity(activeURL, queryIdentitySettings)
     const [pageData, setPageData, patchScroll] = usePageDataState(pageIdentity)
 
     useEffect(() => {
         return subscribeToStorageKey(QUERY_IDENTITY_SETTINGS_KEY, (change) => {
             setQueryIdentitySettings(normalizeQueryIdentitySettings(change.newValue))
+        })
+    }, [])
+
+    useEffect(() => {
+        return subscribeToStorageKey(SCROLL_STRATEGY_SETTINGS_KEY, (change) => {
+            setScrollStrategySettings(normalizeScrollStrategySettings(change.newValue))
         })
     }, [])
 
@@ -131,6 +160,26 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
         [hostname]
     )
 
+    const onScrollStrategyChange = useCallback(
+        /** @param {ScrollStrategy} nextStrategy */
+        (nextStrategy) => {
+            /** @param {ScrollStrategySettings} current */
+            const updateSettings = (current) => {
+                const nextSettings = setHostnameScrollStrategy(
+                    current,
+                    hostname,
+                    nextStrategy
+                )
+
+                void setStoredScrollStrategySettings(nextSettings)
+                return nextSettings
+            }
+
+            setScrollStrategySettings(updateSettings)
+        },
+        [hostname]
+    )
+
     return html`
         <${Context.Provider}
             value=${{activeTab, pageIdentity, pageData, setPageData, patchScroll}}
@@ -140,6 +189,8 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
                 hostname=${hostname}
                 queryIdentityMode=${queryIdentityMode}
                 onQueryIdentityModeChange=${onQueryIdentityModeChange}
+                scrollStrategy=${scrollStrategy}
+                onScrollStrategyChange=${onScrollStrategyChange}
             />
         </${Context.Provider}>
     `
@@ -151,6 +202,8 @@ const Boot = ({activeTab, initialQueryIdentitySettings}) => {
  * @property {string} hostname
  * @property {QueryIdentityMode} queryIdentityMode
  * @property {(mode: QueryIdentityMode) => void} onQueryIdentityModeChange
+ * @property {ScrollStrategy} scrollStrategy
+ * @property {(strategy: ScrollStrategy) => void} onScrollStrategyChange
  */
 
 /** @param {AppProps} props */
@@ -159,6 +212,8 @@ const App = ({
     hostname,
     queryIdentityMode,
     onQueryIdentityModeChange,
+    scrollStrategy,
+    onScrollStrategyChange,
 }) => {
     const {activeTab, pageIdentity, pageData, setPageData} = useBootContext()
     const [autoEditScrollId, setAutoEditScrollId] = useState(
@@ -211,6 +266,7 @@ const App = ({
     const renderScrollItem = (details) => html`
         <${Scroll}
             scrollDetails=${details}
+            scrollStrategy=${scrollStrategy}
             autoEditName=${details.uuid === autoEditScrollId}
             onAutoEditNameHandled=${() => setAutoEditScrollId(null)}
         />
@@ -297,6 +353,37 @@ const App = ({
                         renderItem=${renderScrollItem}
                     />
                 `}
+
+            <div class="popup__strategy-row">
+                <span class="popup__strategy-label-wrap">
+                    <span class="popup__strategy-label">Jump strategy</span>
+                    <button
+                        type="button"
+                        onClick=${onOpenSettings}
+                        class="popup__info-button"
+                        title="Page ratio jumps to the same relative position in the full page. Screen ratio jumps using the saved top position relative to the screen height, which can work better when page content grows or shrinks."
+                        aria-label="Page ratio jumps to the same relative position in the full page. Screen ratio jumps using the saved top position relative to the screen height, which can work better when page content grows or shrinks."
+                    >
+                        <${Icon} icon="circleInfo" className="icon icon--xs" />
+                    </button>
+                </span>
+                <select
+                    value=${scrollStrategy}
+                    onChange=${
+                        /** @param {Event & {currentTarget: HTMLSelectElement}} event */
+                        (event) => {
+                            const nextStrategy = parseScrollStrategy(event.currentTarget.value)
+                            if (nextStrategy) {
+                                onScrollStrategyChange(nextStrategy)
+                            }
+                        }
+                    }
+                    class="popup__strategy-select"
+                >
+                    <option value="page-ratio">Page ratio</option>
+                    <option value="viewport-ratio">Screen ratio</option>
+                </select>
+            </div>
         </div>
     `
 }
@@ -304,10 +391,16 @@ const App = ({
 /**
  * @param {object} props
  * @param {ScrollDetails} props.scrollDetails
+ * @param {ScrollStrategy} props.scrollStrategy
  * @param {boolean} [props.autoEditName]
  * @param {() => void} [props.onAutoEditNameHandled]
  */
-const Scroll = ({scrollDetails, autoEditName = false, onAutoEditNameHandled}) => {
+const Scroll = ({
+    scrollDetails,
+    scrollStrategy,
+    autoEditName = false,
+    onAutoEditNameHandled,
+}) => {
     const {activeTab, pageData, setPageData, patchScroll} = useBootContext()
 
     const onJump = () => {
@@ -316,7 +409,7 @@ const Scroll = ({scrollDetails, autoEditName = false, onAutoEditNameHandled}) =>
         void chrome.scripting.executeScript({
             target: {tabId: activeTab.id},
             func: jumpToScrollPosition,
-            args: [scrollDetails],
+            args: [scrollDetails, scrollStrategy],
         })
     }
 
@@ -327,6 +420,7 @@ const Scroll = ({scrollDetails, autoEditName = false, onAutoEditNameHandled}) =>
             pageData=${pageData}
             setPageData=${setPageData}
             patchScroll=${patchScroll}
+            scrollStrategy=${scrollStrategy}
             autoEditName=${autoEditName}
             onAutoEditNameHandled=${onAutoEditNameHandled}
         />

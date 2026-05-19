@@ -12,14 +12,25 @@ import {
 } from '../../shared/lib/page-store.js'
 import {GenericScroll} from '../../shared/components/scroll-card.js'
 import {SortableScrollList} from '../../shared/components/sortable-scroll-list.js'
-import {subscribeToLocalStorageChanges} from '../../shared/lib/storage.js'
+import {
+    subscribeToLocalStorageChanges,
+    subscribeToStorageKey,
+} from '../../shared/lib/storage.js'
 import {initializeTheme} from '../../shared/lib/theme.js'
 import {usePageDataState} from '../../shared/hooks/use-page-data-state.js'
+import {
+    SCROLL_STRATEGY_SETTINGS_KEY,
+    defaultScrollStrategySettings,
+    getScrollStrategySettings,
+    resolveScrollStrategy,
+} from '../../shared/lib/preferences.js'
 
 /** @typedef {import('../../shared/lib/page-identity.js').PageIdentity} PageIdentity */
 /** @typedef {import('../../shared/lib/page-store.js').PageRecord} PageRecord */
 /** @typedef {import('../../shared/lib/page-store.js').PageRecordByStorageKey} PageRecordByStorageKey */
 /** @typedef {import('../../shared/lib/page-store.js').ScrollDetails} ScrollDetails */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollStrategy} ScrollStrategy */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
 
 const {values} = Object
 const allOrigins = ['<all_urls>']
@@ -53,6 +64,8 @@ const main = async () => {
 const App = ({pageRecordsByStorageKey}) => {
     const [searchText, setSearchText] = useState(/** @type {string | null} */ (null))
     const [pageRecords, setPageRecords] = useState(pageRecordsByStorageKey)
+    const [scrollStrategySettings, setScrollStrategySettings] =
+        useState(defaultScrollStrategySettings)
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
     const [pendingJump, setPendingJump] = useState(
         /** @type {{pageIdentity: PageIdentity, details: ScrollDetails} | null} */ (null)
@@ -67,6 +80,29 @@ const App = ({pageRecordsByStorageKey}) => {
         })
     }, [])
 
+    useEffect(() => {
+        let isMounted = true
+
+        void getScrollStrategySettings().then((settings) => {
+            if (isMounted) {
+                setScrollStrategySettings(settings)
+            }
+        })
+
+        const unsubscribe = subscribeToStorageKey(
+            SCROLL_STRATEGY_SETTINGS_KEY,
+            async () => {
+                if (!isMounted) return
+                setScrollStrategySettings(await getScrollStrategySettings())
+            }
+        )
+
+        return () => {
+            isMounted = false
+            unsubscribe()
+        }
+    }, [])
+
     const handleEnableAutoJump = async () => {
         const granted = await requestAllSitesPermission()
         if (!granted) return
@@ -77,7 +113,14 @@ const App = ({pageRecordsByStorageKey}) => {
 
         const {pageIdentity, details} = pendingJump
         setPendingJump(null)
-        await jumpToMarkedPosition(pageIdentity, details)
+        await jumpToMarkedPosition(
+            pageIdentity,
+            details,
+            resolveScrollStrategy(
+                scrollStrategySettings,
+                getPageHostname(pageIdentity)
+            )
+        )
     }
 
     /** @param {PageIdentity} pageIdentity @param {ScrollDetails} details */
@@ -112,6 +155,7 @@ const App = ({pageRecordsByStorageKey}) => {
         <${Page}
             key=${pageRecord.identity.storageKey}
             identity=${pageRecord.identity}
+            scrollStrategySettings=${scrollStrategySettings}
             onMissingPermission=${handleMissingAutoJumpPermission}
         />
     `
@@ -265,8 +309,22 @@ const requestAllSitesPermission = async () => {
     }
 }
 
-/** @param {PageIdentity} pageIdentity @param {ScrollDetails} scrollDetails @returns {Promise<boolean>} */
-const jumpToMarkedPosition = async (pageIdentity, scrollDetails) => {
+/** @param {PageIdentity} pageIdentity @returns {string} */
+const getPageHostname = (pageIdentity) => {
+    try {
+        return new URL(getNavigablePageURL(pageIdentity)).hostname
+    } catch {
+        return pageIdentity.storageKey.split('/')[0] || ''
+    }
+}
+
+/**
+ * @param {PageIdentity} pageIdentity
+ * @param {ScrollDetails} scrollDetails
+ * @param {ScrollStrategy} scrollStrategy
+ * @returns {Promise<boolean>}
+ */
+const jumpToMarkedPosition = async (pageIdentity, scrollDetails, scrollStrategy) => {
     const tab = await chrome.tabs.create({url: getNavigablePageURL(pageIdentity)})
     if (!tab.id) return false
 
@@ -276,7 +334,7 @@ const jumpToMarkedPosition = async (pageIdentity, scrollDetails) => {
         await chrome.scripting.executeScript({
             target: {tabId: tab.id},
             func: jumpToScrollPosition,
-            args: [scrollDetails],
+            args: [scrollDetails, scrollStrategy],
         })
         return true
     } catch {
@@ -287,15 +345,20 @@ const jumpToMarkedPosition = async (pageIdentity, scrollDetails) => {
 /**
  * @typedef {object} PageProps
  * @property {PageIdentity} identity
+ * @property {ScrollStrategySettings} scrollStrategySettings
  * @property {(pageIdentity: PageIdentity, details: ScrollDetails) => void} onMissingPermission
  */
 
 /** @param {PageProps} props */
-const Page = ({identity, onMissingPermission}) => {
+const Page = ({identity, scrollStrategySettings, onMissingPermission}) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(identity)
     const [expand, setExpand] = useState(false)
     const [jumpError, setJumpError] = useState(/** @type {string | null} */ (null))
     const href = getNavigablePageURL(identity)
+    const scrollStrategy = resolveScrollStrategy(
+        scrollStrategySettings,
+        getPageHostname(identity)
+    )
 
     /** @param {ScrollDetails} details */
     const renderScrollItem = (details) => html`
@@ -305,6 +368,7 @@ const Page = ({identity, onMissingPermission}) => {
             patchScroll=${patchScroll}
             setPageData=${setPageData}
             pageData=${pageData}
+            scrollStrategy=${scrollStrategy}
         />
     `
 
@@ -322,7 +386,7 @@ const Page = ({identity, onMissingPermission}) => {
             return
         }
 
-        const didJump = await jumpToMarkedPosition(identity, details)
+        const didJump = await jumpToMarkedPosition(identity, details, scrollStrategy)
         if (!didJump) {
             setJumpError('Could not jump on this page.')
         }

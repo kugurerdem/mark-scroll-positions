@@ -250,6 +250,7 @@ html:not([data-theme-ready='true']) body {
 .popup__header,
 .popup__actions,
 .popup__query-row,
+.popup__strategy-row,
 .manage-page__hero,
 .settings-card__header,
 .scroll-card__main,
@@ -318,6 +319,18 @@ html:not([data-theme-ready='true']) body {
   margin-bottom: 0.75rem;
 }
 
+.popup__strategy-row {
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.popup__strategy-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .popup__query-label {
   display: inline-flex;
   align-items: center;
@@ -330,6 +343,29 @@ html:not([data-theme-ready='true']) body {
 
 .popup__query-host {
   color: var(--color-ink-700);
+}
+
+.popup__strategy-label {
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.popup__strategy-select {
+  min-width: 7.5rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-cream-300);
+  border-radius: 0.5rem;
+  background: var(--color-cream-50);
+  color: var(--color-ink-700);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  outline: none;
+}
+
+.popup__strategy-select:focus {
+  border-color: var(--color-accent-400);
+  box-shadow: 0 0 0 3px rgba(62, 114, 183, 0.16);
 }
 
 .popup__info-button {
