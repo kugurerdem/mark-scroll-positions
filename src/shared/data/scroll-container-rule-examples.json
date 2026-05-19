@@ -1,0 +1,8 @@
+[
+  {
+    "name": "ChatGPT",
+    "urlPattern": "chatgpt.com/c",
+    "selector": "div.flex.h-svh.w-screen > div.relative.z-0.flex > div.relative.flex.min-h-0 > div.\\@container\\/main.relative.flex > div.\\@w-sm\\/main\\:\\[scrollbar-gutter\\:var\\(--stage-scroll-gutter\\)\\].touch\\:\\[scrollbar-width\\:none\\].group\\/scroll-root",
+    "description": "Conversation pages where the main chat area scrolls inside the app shell."
+  }
+]

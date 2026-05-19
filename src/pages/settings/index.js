@@ -52,6 +52,17 @@ import {
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollContainerSettings} ScrollContainerSettings */
 
+/**
+ * @typedef {object} ScrollContainerRuleExample
+ * @property {string} name
+ * @property {string} urlPattern
+ * @property {string} selector
+ * @property {string} description
+ */
+
+const SCROLL_CONTAINER_RULE_EXAMPLES_PATH =
+    'src/shared/data/scroll-container-rule-examples.json'
+
 /** @param {string} value @returns {boolean} */
 const hasProtocol = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
 
@@ -69,6 +80,61 @@ const normalizeHostnameInput = (value) => {
     } catch {
         return null
     }
+}
+
+/** @param {string} selector @returns {boolean} */
+const isValidCSSSelector = (selector) => {
+    try {
+        document.createDocumentFragment().querySelector(selector)
+        return true
+    } catch {
+        return false
+    }
+}
+
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+const isRecord = (value) =>
+    Boolean(value && typeof value === 'object' && !Array.isArray(value))
+
+/** @param {unknown} value @returns {ScrollContainerRuleExample[]} */
+const normalizeScrollContainerRuleExamples = (value) => {
+    if (!Array.isArray(value)) return []
+
+    return value.reduce(
+        /** @param {ScrollContainerRuleExample[]} examples @param {unknown} item */
+        (examples, item) => {
+            if (!isRecord(item)) return examples
+
+            const name = typeof item.name === 'string' ? item.name.trim() : ''
+            const normalizedPattern = typeof item.urlPattern === 'string'
+                ? normalizeURLPattern(item.urlPattern)
+                : null
+            const selector = typeof item.selector === 'string'
+                ? item.selector.trim()
+                : ''
+            const description = typeof item.description === 'string'
+                ? item.description.trim()
+                : ''
+
+            if (
+                !name ||
+                !normalizedPattern ||
+                !selector ||
+                !isValidCSSSelector(selector)
+            ) {
+                return examples
+            }
+
+            examples.push({
+                name,
+                urlPattern: normalizedPattern,
+                selector,
+                description,
+            })
+            return examples
+        },
+        []
+    )
 }
 
 const main = async () => {
@@ -100,6 +166,11 @@ const App = () => {
     const [newContainerSelector, setNewContainerSelector] = useState('')
     const [containerRuleError, setContainerRuleError] =
         useState(/** @type {string | null} */ (null))
+    const [scrollContainerRuleExamples, setScrollContainerRuleExamples] =
+        useState(/** @type {ScrollContainerRuleExample[]} */ ([]))
+    const [ruleExamplesError, setRuleExamplesError] =
+        useState(/** @type {string | null} */ (null))
+    const [areRuleExamplesExpanded, setAreRuleExamplesExpanded] = useState(false)
 
     useEffect(() => {
         let isMounted = true
@@ -118,6 +189,26 @@ const App = () => {
             setScrollStrategySettings(strategySettings)
             setScrollContainerSettings(containerSettings)
         })
+
+        void fetch(chrome.runtime.getURL(SCROLL_CONTAINER_RULE_EXAMPLES_PATH))
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error('Unable to load example rules.')
+                }
+
+                return response.json()
+            })
+            .then((value) => {
+                if (!isMounted) return
+
+                setScrollContainerRuleExamples(
+                    normalizeScrollContainerRuleExamples(value)
+                )
+            })
+            .catch(() => {
+                if (!isMounted) return
+                setRuleExamplesError('Example rules could not be loaded.')
+            })
 
         const unsubscribe = subscribeThemePreference((preference) => {
             if (!isMounted) return
@@ -354,9 +445,7 @@ const App = () => {
             return
         }
 
-        try {
-            document.createDocumentFragment().querySelector(normalizedSelector)
-        } catch {
+        if (!isValidCSSSelector(normalizedSelector)) {
             setContainerRuleError('Enter a valid CSS selector.')
             return
         }
@@ -382,6 +471,22 @@ const App = () => {
                 /** @param {ScrollContainerSettings} current */
                 (current) =>
                 removeURLPatternScrollContainerSelector(current, pattern)
+            )
+        },
+        [updateScrollContainerSettings]
+    )
+
+    const onAddScrollContainerRuleExample = useCallback(
+        /** @param {ScrollContainerRuleExample} example */
+        (example) => {
+            updateScrollContainerSettings(
+                /** @param {ScrollContainerSettings} current */
+                (current) =>
+                    setURLPatternScrollContainerSelector(
+                        current,
+                        example.urlPattern,
+                        example.selector
+                    )
             )
         },
         [updateScrollContainerSettings]
@@ -683,6 +788,120 @@ const App = () => {
                                 `)}
                             </div>
                         `}
+
+                    <div class="settings-subsection">
+                        <button
+                            type="button"
+                            onClick=${() =>
+                                setAreRuleExamplesExpanded(
+                                    /** @param {boolean} isExpanded */
+                                    (isExpanded) => !isExpanded
+                                )}
+                            class="settings-disclosure"
+                            aria-expanded=${areRuleExamplesExpanded}
+                        >
+                            <span>Example Rules</span>
+                            <span class="settings-disclosure__summary">
+                                ${scrollContainerRuleExamples.length} available
+                            </span>
+                            <${Icon}
+                                icon=${areRuleExamplesExpanded ? 'angleUp' : 'angleDown'}
+                                className="icon icon--xs"
+                            />
+                        </button>
+
+                        ${areRuleExamplesExpanded
+                            ? html`
+                                <div class="settings-notice">
+                                    <${Icon} icon="circleInfo" className="icon icon--xs" />
+                                    <p>
+                                        These examples may become outdated when websites change. If an example is missing or no
+                                        longer works, use the
+                                        <a
+                                            href="https://github.com/kugurerdem/mark-scroll-positions#finding-a-custom-scroll-container-selector"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            custom selector guide
+                                        </a>
+                                        and feel free to open a PR with updated selectors.
+                                    </p>
+                                </div>
+
+                                ${ruleExamplesError
+                                    ? html`<p class="settings-error">${ruleExamplesError}</p>`
+                                    : null}
+
+                                ${scrollContainerRuleExamples.length === 0 && !ruleExamplesError
+                                    ? html`<p class="settings-empty-state">No example rules available.</p>`
+                                    : html`
+                                        <div class="settings-example-rule-list">
+                                            ${scrollContainerRuleExamples.map(
+                                                /** @param {ScrollContainerRuleExample} example */
+                                                (example) => {
+                                                    const existingSelector =
+                                                        scrollContainerSettings.perURLPatternSelector[
+                                                            example.urlPattern
+                                                        ]
+                                                    const isAdded = existingSelector === example.selector
+
+                                                    return html`
+                                                        <div
+                                                            key=${example.urlPattern}
+                                                            class="settings-example-rule"
+                                                        >
+                                                            <div class="settings-example-rule__main">
+                                                                <span class="settings-example-rule__name">
+                                                                    ${example.name}
+                                                                </span>
+                                                                <span
+                                                                    class="settings-example-rule__pattern"
+                                                                    title=${example.urlPattern}
+                                                                >
+                                                                    ${example.urlPattern}
+                                                                </span>
+                                                                <span
+                                                                    class="settings-example-rule__selector"
+                                                                    title=${example.selector}
+                                                                >
+                                                                    ${example.selector}
+                                                                </span>
+                                                                ${example.description
+                                                                    ? html`
+                                                                        <p class="settings-example-rule__description">
+                                                                            ${example.description}
+                                                                        </p>
+                                                                    `
+                                                                    : null}
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick=${() =>
+                                                                    onAddScrollContainerRuleExample(
+                                                                        example
+                                                                    )}
+                                                                disabled=${isAdded}
+                                                                class=${`button settings-example-rule__button${
+                                                                    isAdded
+                                                                        ? ' button--secondary'
+                                                                        : ' button--primary'
+                                                                }`}
+                                                            >
+                                                                ${isAdded ? 'Added' : 'Add'}
+                                                            </button>
+                                                        </div>
+                                                    `
+                                                }
+                                            )}
+                                        </div>
+                                    `}
+                            `
+                            : html`
+                                ${ruleExamplesError
+                                    ? html`<p class="settings-error">${ruleExamplesError}</p>`
+                                    : null}
+                            `}
+                    </div>
                 </div>
 
                 <div class="settings-section">

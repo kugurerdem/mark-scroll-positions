@@ -472,6 +472,7 @@ textarea.text-field__control {
 
 .scroll-list,
 .manage-page__list,
+.settings-example-rule-list,
 .settings-rule-list {
   display: flex;
   flex-direction: column;
@@ -486,6 +487,11 @@ textarea.text-field__control {
 }
 
 .settings-rule-list {
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.settings-example-rule-list {
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
@@ -915,6 +921,29 @@ textarea.text-field__control {
   color: var(--color-ink-600);
 }
 
+.settings-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.625rem;
+  border: 1px solid var(--color-accent-200);
+  border-radius: 0.75rem;
+  background: var(--color-accent-50);
+  color: var(--color-ink-600);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.settings-notice p {
+  margin: 0;
+}
+
+.settings-notice a {
+  color: var(--color-accent-700);
+  font-weight: 600;
+}
+
 .segmented-control,
 .theme-toggle {
   display: inline-flex;
@@ -985,6 +1014,31 @@ textarea.text-field__control {
   margin-top: 1rem;
 }
 
+.settings-disclosure {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+  padding: 0.625rem 0;
+  background: transparent;
+  color: var(--color-ink-700);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.settings-disclosure__summary {
+  margin-left: auto;
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .settings-rule-builder {
   gap: 0.5rem;
   margin-top: 0.5rem;
@@ -1007,6 +1061,66 @@ textarea.text-field__control {
   padding: 0.5rem;
   border-radius: 0.75rem;
   background: var(--color-cream-50);
+}
+
+.settings-example-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem;
+  border: 1px solid var(--color-cream-300);
+  border-radius: 0.75rem;
+  background: var(--color-cream-50);
+}
+
+.settings-example-rule__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-example-rule__name,
+.settings-example-rule__pattern,
+.settings-example-rule__selector {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-example-rule__name {
+  color: var(--color-ink-700);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.settings-example-rule__pattern {
+  margin-top: 0.125rem;
+  color: var(--color-ink-500);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.settings-example-rule__selector {
+  margin-top: 0.25rem;
+  color: var(--color-ink-600);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+}
+
+.settings-example-rule__description {
+  margin: 0.375rem 0 0;
+  color: var(--color-ink-500);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.settings-example-rule__button {
+  min-width: 4.5rem;
+}
+
+.settings-example-rule__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .settings-rule-item__hostname {
@@ -1065,6 +1179,7 @@ textarea.text-field__control {
   }
 
   .page-card__row,
+  .settings-example-rule,
   .settings-rule-builder,
   .settings-rule-item {
     align-items: stretch;
@@ -1080,6 +1195,7 @@ textarea.text-field__control {
   }
 
   .settings-select,
+  .settings-example-rule__button,
   .settings-add-button,
   .settings-rule-item__select {
     width: 100%;
