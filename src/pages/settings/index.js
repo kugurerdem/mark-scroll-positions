@@ -171,6 +171,7 @@ const App = () => {
     const [ruleExamplesError, setRuleExamplesError] =
         useState(/** @type {string | null} */ (null))
     const [areRuleExamplesExpanded, setAreRuleExamplesExpanded] = useState(false)
+    const [isStrategyHelpExpanded, setIsStrategyHelpExpanded] = useState(false)
 
     useEffect(() => {
         let isMounted = true
@@ -524,63 +525,92 @@ const App = () => {
                     </div>
                 </header>
 
-                <div class="settings-section settings-section--spaced">
-                    <p class="settings-section__eyebrow">Theme Mode</p>
-                    <${ThemeToggle} value=${themePreference} onChange=${onThemeChange} />
-                    <p class="settings-section__help settings-section__help--spaced">
-                        System follows your browser appearance preferences.
-                    </p>
+                <div class="settings-section settings-section--spaced settings-section--compact">
+                    <p class="settings-section__eyebrow">Preferences</p>
+                    <div class="settings-preference-row">
+                        <div class="settings-preference-row__text">
+                            <span class="settings-preference-row__label">Theme</span>
+                            <span class="settings-preference-row__help">
+                                System follows your browser.
+                            </span>
+                        </div>
+                        <${ThemeToggle}
+                            value=${themePreference}
+                            onChange=${onThemeChange}
+                            compact=${true}
+                        />
+                    </div>
+                    <div class="settings-preference-row">
+                        <div class="settings-preference-row__text">
+                            <span class="settings-preference-row__label">
+                                New Mark Placement
+                            </span>
+                            <span class="settings-preference-row__help">
+                                Choose where new marks appear.
+                            </span>
+                        </div>
+                        <div class="segmented-control segmented-control--compact">
+                            <button
+                                type="button"
+                                onClick=${() => onMarkInsertPositionChange('top')}
+                                class=${`segmented-control__button segmented-control__button--compact${
+                                    markInsertPosition === 'top'
+                                        ? ' segmented-control__button--active'
+                                        : ''
+                                }`}
+                            >
+                                Top
+                            </button>
+                            <button
+                                type="button"
+                                onClick=${() => onMarkInsertPositionChange('bottom')}
+                                class=${`segmented-control__button segmented-control__button--compact${
+                                    markInsertPosition === 'bottom'
+                                        ? ' segmented-control__button--active'
+                                        : ''
+                                }`}
+                            >
+                                Bottom
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="settings-section">
-                    <p class="settings-section__eyebrow">New Mark Placement</p>
-                    <div class="segmented-control">
+                    <div class="settings-section__title-row">
+                        <p class="settings-section__eyebrow">Jump Strategy Rules</p>
                         <button
                             type="button"
-                            onClick=${() => onMarkInsertPositionChange('top')}
-                            class=${`segmented-control__button${
-                                markInsertPosition === 'top'
-                                    ? ' segmented-control__button--active'
-                                    : ''
-                            }`}
+                            onClick=${() =>
+                                setIsStrategyHelpExpanded(
+                                    /** @param {boolean} isExpanded */
+                                    (isExpanded) => !isExpanded
+                                )}
+                            class="icon-button icon-button--compact settings-info-toggle"
+                            title="Show jump strategy help"
+                            aria-label="Show jump strategy help"
+                            aria-expanded=${isStrategyHelpExpanded}
                         >
-                            Top
-                        </button>
-                        <button
-                            type="button"
-                            onClick=${() => onMarkInsertPositionChange('bottom')}
-                            class=${`segmented-control__button${
-                                markInsertPosition === 'bottom'
-                                    ? ' segmented-control__button--active'
-                                    : ''
-                            }`}
-                        >
-                            Bottom
+                            <${Icon} icon="circleInfo" className="icon icon--xs" />
                         </button>
                     </div>
-                    <p class="settings-section__help settings-section__help--spaced">
-                        Choose whether new marks are added first or last in the list.
-                    </p>
-                </div>
 
-                <div class="settings-section">
-                    <p class="settings-section__eyebrow">Jump Strategy Rules</p>
-                    <div class="settings-section__help settings-section__help--spaced">
-                        <p>The Default rule is used unless a more specific hostname or path prefix matches.</p>
-                        <p>
-                            Page ratio uses the saved position relative to the full page height. Use it for pages where
-                            the overall document structure stays stable.
-                        </p>
-                        <p>
-                            Screen ratio uses the saved top position relative to the viewport height. Use it for pages
-                            that append content, such as chats or comment sections.
-                        </p>
-                        <p>
-                            If the page has not changed, both strategies should usually land in the same place.
-                            The difference is how jumps behave when content is added or removed after the mark was
-                            created.
-                        </p>
-                    </div>
+                    ${isStrategyHelpExpanded
+                        ? html`
+                            <div class="settings-notice settings-notice--spaced">
+                                <${Icon} icon="circleInfo" className="icon icon--xs" />
+                                <div>
+                                    <p>
+                                        The Default rule is used unless a more specific hostname or path prefix matches.
+                                    </p>
+                                    <p>
+                                        Page ratio follows full page progress. Screen ratio follows viewport distance,
+                                        which usually works better for chats or append-heavy pages.
+                                    </p>
+                                </div>
+                            </div>
+                        `
+                        : null}
 
                     <div class="settings-rule-builder">
                         <input
@@ -703,7 +733,6 @@ const App = () => {
                     <p class="settings-section__eyebrow">Scroll Container Rules</p>
                     <p class="settings-section__help settings-section__help--spaced">
                         Use these only for sites where scrolling happens inside a page element instead of the document.
-                        Rules use the same hostname or path prefix matching as jump strategy rules.
                     </p>
 
                     <div class="settings-rule-builder">
