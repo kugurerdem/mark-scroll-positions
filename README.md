@@ -62,3 +62,84 @@ Releases are tag-driven.
 GitHub Actions then installs the developer dependencies, runs
 `npm run typecheck`, packages `manifest.json`, `public`, `src`, and `vendor`
 into `build.zip`, and creates the GitHub release from that tag.
+
+# Finding a custom scroll container selector
+
+Some web apps do not scroll the document itself. Instead, they keep the page
+fixed and scroll a specific element inside the page. Chat apps and pages with
+large comment panels often work this way.
+
+If saved marks always look like they are at `100% scrolled`, or jumping does
+not move the visible content, you may need to add a custom scroll container rule
+in the extension settings.
+
+To find the selector:
+
+1. Open the page where scrolling is not detected correctly.
+2. Open the browser developer tools.
+3. Open the Console tab.
+4. Paste and run this script:
+
+```js
+(() => {
+  const selectorFor = (element) => {
+    if (element.id) return `#${CSS.escape(element.id)}`
+
+    const parts = []
+    let current = element
+
+    while (current && current.nodeType === Node.ELEMENT_NODE && parts.length < 5) {
+      const tagName = current.tagName.toLowerCase()
+      const className = [...current.classList]
+        .slice(0, 3)
+        .map((name) => `.${CSS.escape(name)}`)
+        .join('')
+
+      parts.unshift(`${tagName}${className}`)
+      current = current.parentElement
+    }
+
+    return parts.join(' > ')
+  }
+
+  const before = new Map(
+    [...document.querySelectorAll('*')]
+      .filter((element) => element.scrollHeight > element.clientHeight)
+      .map((element) => [element, element.scrollTop])
+  )
+
+  console.log('Scroll the page now, then run: findChangedScrollContainers()')
+
+  window.findChangedScrollContainers = () => {
+    const changed = [...before]
+      .map(([element, scrollTop]) => ({
+        selector: selectorFor(element),
+        before: scrollTop,
+        after: element.scrollTop,
+        element,
+      }))
+      .filter(({before, after}) => before !== after)
+
+    console.table(changed.map(({selector, before, after}) => ({selector, before, after})))
+    return changed
+  }
+})()
+```
+
+5. Scroll the page content that you want the extension to track.
+6. Run this in the Console:
+
+```js
+findChangedScrollContainers()
+```
+
+The table shows elements whose `scrollTop` changed while you scrolled. Copy the
+most specific-looking selector from the `selector` column, then add it in:
+
+`Settings -> Scroll Container Rules`
+
+Use a URL prefix such as `chatgpt.com` or `example.com/comments`, and paste the
+selector into the CSS selector field.
+
+If the selector stops matching later, the extension falls back to normal
+document scrolling. In that case, repeat the steps above and update the rule.
