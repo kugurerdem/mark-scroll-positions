@@ -816,7 +816,7 @@ const App = () => {
                                     <${Icon} icon="circleInfo" className="icon icon--xs" />
                                     <p>
                                         These examples may become outdated when websites change. If an example is missing or no
-                                        longer works, use the
+                                        longer works, use the${' '}
                                         <a
                                             href="https://github.com/kugurerdem/mark-scroll-positions#finding-a-custom-scroll-container-selector"
                                             target="_blank"
@@ -824,7 +824,7 @@ const App = () => {
                                         >
                                             custom selector guide
                                         </a>
-                                        and feel free to open a PR with updated selectors.
+                                        ${' '}and feel free to open a PR with updated selectors.
                                     </p>
                                 </div>
 

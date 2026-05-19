@@ -1,8 +1,20 @@
 [
   {
     "name": "ChatGPT",
-    "urlPattern": "chatgpt.com/c",
+    "urlPattern": "chatgpt.com",
     "selector": "div.flex.h-svh.w-screen > div.relative.z-0.flex > div.relative.flex.min-h-0 > div.\\@container\\/main.relative.flex > div.\\@w-sm\\/main\\:\\[scrollbar-gutter\\:var\\(--stage-scroll-gutter\\)\\].touch\\:\\[scrollbar-width\\:none\\].group\\/scroll-root",
-    "description": "Conversation pages where the main chat area scrolls inside the app shell."
+    "description": "Use chat area as the scroll container."
+  },
+  {
+    "name": "Claude",
+    "urlPattern": "claude.ai/chat",
+    "selector": "div.flex.min-h-0.min-w-0 > div.w-full.relative.min-w-0 > div.flex.flex-1.h-full > div.h-full.flex.flex-col > div.overflow-y-auto.overflow-x-hidden.\\[scrollbar-gutter\\:stable\\]",
+    "description": "Use chat area as the scroll container."
+  },
+  {
+    "name": "Gemini",
+    "urlPattern": "gemini.google.com/app",
+    "selector": "chat-window.ng-tns-c54723552-1.lm-canvas-styling.ng-star-inserted > div.xap-uploader-dropzone.chat-container.ng-tns-c54723552-1 > chat-window-content.ng-tns-c54723552-1.ui-improvements-phase-1.ng-star-inserted > div.chat-history-scroll-container.lm > infinite-scroller.chat-history.enable-2026q1-formatting-improvements.enable-lr26-markdown-styling",
+    "description": "Use chat area as the scroll container."
   }
 ]

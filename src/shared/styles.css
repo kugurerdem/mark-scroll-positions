@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
 :root {
-  --color-cream-50: #f8fbfd;
-  --color-cream-100: #f1f6fa;
-  --color-cream-200: #e6eef6;
-  --color-cream-300: #d4e0eb;
-  --color-cream-400: #bfcee0;
+  --color-cream-50: #fbfdff;
+  --color-cream-100: #f4f8fb;
+  --color-cream-200: #e7eef5;
+  --color-cream-300: #c8d5e2;
+  --color-cream-400: #aabacd;
 
-  --color-ink-900: #16263a;
-  --color-ink-700: #2d4360;
-  --color-ink-600: #405772;
-  --color-ink-500: #587394;
-  --color-ink-400: #7690ae;
-  --color-ink-300: #9db1c7;
+  --color-ink-900: #102033;
+  --color-ink-700: #253a54;
+  --color-ink-600: #334b68;
+  --color-ink-500: #425f7f;
+  --color-ink-400: #536f8d;
+  --color-ink-300: #7189a4;
 
   --color-accent-50: #eef6ff;
   --color-accent-100: #dcecff;
@@ -40,17 +40,17 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-cream-50: #151c27;
-  --color-cream-100: #1c2533;
-  --color-cream-200: #263346;
-  --color-cream-300: #34475f;
-  --color-cream-400: #48617f;
+  --color-cream-50: #111722;
+  --color-cream-100: #182231;
+  --color-cream-200: #223248;
+  --color-cream-300: #304762;
+  --color-cream-400: #45617f;
 
-  --color-ink-900: #e8f0ff;
-  --color-ink-700: #cfdcf4;
-  --color-ink-500: #adbfda;
-  --color-ink-400: #8da3c4;
-  --color-ink-300: #7085a6;
+  --color-ink-900: #f2f6ff;
+  --color-ink-700: #dbe6f7;
+  --color-ink-500: #c2d1e7;
+  --color-ink-400: #a9bdd6;
+  --color-ink-300: #8fa6c2;
 
   --color-accent-50: #15263a;
   --color-accent-100: #1d3350;
@@ -397,7 +397,7 @@ html:not([data-theme-ready='true']) body {
 
 .popup__empty-state {
   padding: 2rem 0;
-  color: var(--color-ink-300);
+  color: var(--color-ink-500);
   font-size: 0.875rem;
   font-style: italic;
   text-align: center;
@@ -411,7 +411,7 @@ html:not([data-theme-ready='true']) body {
 .settings-section__eyebrow {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--color-ink-400);
+  color: var(--color-ink-500);
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.12em;
@@ -584,7 +584,7 @@ textarea.text-field__control {
 }
 
 .scroll-card__name--empty {
-  color: var(--color-ink-300);
+  color: var(--color-ink-500);
   font-style: italic;
 }
 
@@ -632,7 +632,7 @@ textarea.text-field__control {
 .page-card__details {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(212, 224, 235, 0.8);
+  border-top: 1px solid var(--color-cream-300);
 }
 
 .scroll-card__date,
@@ -643,7 +643,7 @@ textarea.text-field__control {
 .settings-card__subtitle,
 .settings-section__help,
 .settings-empty-state {
-  color: var(--color-ink-400);
+  color: var(--color-ink-500);
 }
 
 .scroll-card__date,
@@ -794,7 +794,7 @@ textarea.text-field__control {
 }
 
 .manage-empty-state__title {
-  color: var(--color-ink-400);
+  color: var(--color-ink-500);
   font-size: 1.125rem;
   font-style: italic;
   font-weight: 400;
@@ -835,7 +835,7 @@ textarea.text-field__control {
 
 .page-card__url {
   overflow: hidden;
-  color: var(--color-ink-400);
+  color: var(--color-ink-500);
   font-size: 0.75rem;
   text-decoration: none;
   text-overflow: ellipsis;
@@ -927,12 +927,16 @@ textarea.text-field__control {
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding: 0.625rem;
-  border: 1px solid var(--color-accent-200);
+  border: 1px solid var(--color-accent-300);
   border-radius: 0.75rem;
-  background: var(--color-accent-50);
-  color: var(--color-ink-600);
+  background: var(--color-cream-50);
+  color: var(--color-ink-700);
   font-size: 0.75rem;
   line-height: 1.45;
+}
+
+.settings-notice .icon {
+  color: var(--color-accent-700);
 }
 
 .settings-notice p {
@@ -942,6 +946,8 @@ textarea.text-field__control {
 .settings-notice a {
   color: var(--color-accent-700);
   font-weight: 600;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
 }
 
 .segmented-control,
@@ -1079,12 +1085,17 @@ textarea.text-field__control {
 }
 
 .settings-example-rule__name,
-.settings-example-rule__pattern,
-.settings-example-rule__selector {
+.settings-example-rule__pattern {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.settings-example-rule__selector {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .settings-example-rule__name {
