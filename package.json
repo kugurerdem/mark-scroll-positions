@@ -1,6 +1,6 @@
 {
   "name": "mark-scroll-positions",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "type": "module",
   "scripts": {
     "start:firefox": "web-ext run --source-dir=. --target=firefox-desktop",
