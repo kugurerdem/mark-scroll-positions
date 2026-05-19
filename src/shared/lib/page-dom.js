@@ -10,13 +10,40 @@
  * @property {string} title
  */
 
-/** @returns {PageScrollSnapshot} */
-export const capturePageScrollSnapshot = () => {
+/** @param {string | null} [scrollContainerSelector] @returns {PageScrollSnapshot} */
+export const capturePageScrollSnapshot = (scrollContainerSelector = null) => {
+    /** @param {string | null} selector @returns {HTMLElement | null} */
+    const resolveScrollContainer = (selector) => {
+        if (!selector) return null
+
+        try {
+            const element = document.querySelector(selector)
+            if (!(element instanceof HTMLElement)) return null
+            if (element.scrollHeight <= element.clientHeight) return null
+            return element
+        } catch {
+            return null
+        }
+    }
+
+    const scrollContainer = resolveScrollContainer(scrollContainerSelector)
+
+    if (scrollContainer) {
+        return {
+            scrollPosition: Math.min(
+                scrollContainer.scrollTop,
+                Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 0)
+            ),
+            viewportHeight: scrollContainer.clientHeight,
+            contentHeight: scrollContainer.scrollHeight,
+            title: document.title,
+        }
+    }
+
     const contentHeight = Math.max(
         document.documentElement?.scrollHeight || 0,
         document.body?.scrollHeight || 0
     )
-
     const maxScrollPosition = Math.max(contentHeight - window.innerHeight, 0)
     const scrollPosition = Math.min(window.pageYOffset, maxScrollPosition)
 
@@ -107,24 +134,47 @@ export const calculateJumpPosition = (
 /**
  * @param {JumpToScrollPositionArgs} args
  * @param {ScrollStrategy} [strategy]
+ * @param {string | null} [scrollContainerSelector]
  */
-export const jumpToScrollPosition = (args, strategy = 'page-ratio') => {
+export const jumpToScrollPosition = (
+    args,
+    strategy = 'page-ratio',
+    scrollContainerSelector = null
+) => {
     /** @param {number} value @returns {number} */
     const clampPercentage = (value) => {
         if (!Number.isFinite(value)) return 0
         return Math.min(1, Math.max(0, value))
     }
 
+    /** @param {string | null} selector @returns {HTMLElement | null} */
+    const resolveScrollContainer = (selector) => {
+        if (!selector) return null
+
+        try {
+            const element = document.querySelector(selector)
+            if (!(element instanceof HTMLElement)) return null
+            if (element.scrollHeight <= element.clientHeight) return null
+            return element
+        } catch {
+            return null
+        }
+    }
+
+    const scrollContainer = resolveScrollContainer(scrollContainerSelector)
     const currentContentHeight = Math.max(
-        document.documentElement?.scrollHeight || 0,
-        document.body?.scrollHeight || 0
+        scrollContainer?.scrollHeight || 0,
+        scrollContainer ? 0 : document.documentElement?.scrollHeight || 0,
+        scrollContainer ? 0 : document.body?.scrollHeight || 0
     )
+    const currentViewportHeight = scrollContainer
+        ? scrollContainer.clientHeight
+        : window.innerHeight
 
     const currentScrollableHeight = Math.max(
-        currentContentHeight - window.innerHeight,
+        currentContentHeight - currentViewportHeight,
         0
     )
-
     const savedScrollableHeight = Math.max(
         args.contentHeight - args.viewportHeight,
         0
@@ -135,12 +185,16 @@ export const jumpToScrollPosition = (args, strategy = 'page-ratio') => {
             ? args.scrollPosition / savedScrollableHeight
             : 0
     const rawJumpPositionY = strategy === 'viewport-ratio'
-        ? ratio * window.innerHeight
+        ? ratio * currentViewportHeight
         : clampPercentage(ratio) * currentScrollableHeight
     const toJumpPositionY = Math.min(
         currentScrollableHeight,
         Math.max(0, rawJumpPositionY)
     )
 
-    window.scrollTo(0, toJumpPositionY)
+    if (scrollContainer) {
+        scrollContainer.scrollTop = toJumpPositionY
+    } else {
+        window.scrollTo(0, toJumpPositionY)
+    }
 }

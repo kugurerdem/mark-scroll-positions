@@ -12,15 +12,22 @@ import {Icon} from '../../shared/components/icons.js'
 import {ThemeToggle} from '../../shared/components/theme-toggle.js'
 import {
     MARK_INSERT_POSITION_KEY,
+    SCROLL_CONTAINER_SETTINGS_KEY,
     SCROLL_STRATEGY_SETTINGS_KEY,
+    defaultScrollContainerSettings,
     defaultScrollStrategySettings,
+    getScrollContainerSettings,
     getScrollInsertPosition,
     getScrollStrategySettings,
     isScrollInsertPosition,
+    normalizeScrollContainerSettings,
     normalizeURLPattern,
     parseScrollStrategy,
+    removeURLPatternScrollContainerSelector,
     removeURLPatternScrollStrategy,
+    setScrollContainerSettings as setStoredScrollContainerSettings,
     setGlobalScrollStrategy,
+    setURLPatternScrollContainerSelector,
     setURLPatternScrollStrategy,
     setScrollInsertPosition,
     setScrollStrategySettings as setStoredScrollStrategySettings,
@@ -43,6 +50,7 @@ import {
 /** @typedef {import('../../shared/lib/preferences.js').ScrollInsertPosition} ScrollInsertPosition */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategy} ScrollStrategy */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollContainerSettings} ScrollContainerSettings */
 
 /** @param {string} value @returns {boolean} */
 const hasProtocol = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(value)
@@ -77,6 +85,8 @@ const App = () => {
         useState(defaultQueryIdentitySettings)
     const [scrollStrategySettings, setScrollStrategySettings] =
         useState(defaultScrollStrategySettings)
+    const [scrollContainerSettings, setScrollContainerSettings] =
+        useState(defaultScrollContainerSettings)
     const [newHostname, setNewHostname] = useState('')
     const [newHostnameMode, setNewHostnameMode] =
         useState(/** @type {QueryIdentityMode} */ ('include'))
@@ -85,6 +95,10 @@ const App = () => {
     const [newPatternStrategy, setNewPatternStrategy] =
         useState(/** @type {ScrollStrategy} */ ('viewport-ratio'))
     const [strategyPatternError, setStrategyPatternError] =
+        useState(/** @type {string | null} */ (null))
+    const [newContainerPattern, setNewContainerPattern] = useState('')
+    const [newContainerSelector, setNewContainerSelector] = useState('')
+    const [containerRuleError, setContainerRuleError] =
         useState(/** @type {string | null} */ (null))
 
     useEffect(() => {
@@ -95,12 +109,14 @@ const App = () => {
             getScrollInsertPosition(),
             getQueryIdentitySettings(),
             getScrollStrategySettings(),
-        ]).then(([preference, position, settings, strategySettings]) => {
+            getScrollContainerSettings(),
+        ]).then(([preference, position, settings, strategySettings, containerSettings]) => {
             if (!isMounted) return
             setThemePreference(preference)
             setMarkInsertPosition(position)
             setQueryIdentitySettings(settings)
             setScrollStrategySettings(strategySettings)
+            setScrollContainerSettings(containerSettings)
         })
 
         const unsubscribe = subscribeThemePreference((preference) => {
@@ -131,6 +147,15 @@ const App = () => {
                 setScrollStrategySettings(await getScrollStrategySettings())
             }
         )
+        const unsubscribeScrollContainerSettings = subscribeToStorageKey(
+            SCROLL_CONTAINER_SETTINGS_KEY,
+            (change) => {
+                if (!isMounted) return
+                setScrollContainerSettings(
+                    normalizeScrollContainerSettings(change.newValue)
+                )
+            }
+        )
 
         return () => {
             isMounted = false
@@ -138,6 +163,7 @@ const App = () => {
             unsubscribeMarkInsertPosition()
             unsubscribeQueryIdentitySettings()
             unsubscribeScrollStrategySettings()
+            unsubscribeScrollContainerSettings()
         }
     }, [])
 
@@ -185,6 +211,21 @@ const App = () => {
             }
 
             setScrollStrategySettings(applyUpdate)
+        },
+        []
+    )
+
+    const updateScrollContainerSettings = useCallback(
+        /** @param {(current: ScrollContainerSettings) => ScrollContainerSettings} updater */
+        (updater) => {
+            /** @type {(current: ScrollContainerSettings) => ScrollContainerSettings} */
+            const applyUpdate = (current) => {
+                const next = updater(current)
+                void setStoredScrollContainerSettings(next)
+                return next
+            }
+
+            setScrollContainerSettings(applyUpdate)
         },
         []
     )
@@ -299,12 +340,65 @@ const App = () => {
         setNewStrategyPattern('')
     }, [newStrategyPattern, newPatternStrategy, updateScrollStrategySettings])
 
+    const onAddScrollContainerRule = useCallback(() => {
+        const normalizedPattern = normalizeURLPattern(newContainerPattern)
+        const normalizedSelector = newContainerSelector.trim()
+
+        if (!normalizedPattern) {
+            setContainerRuleError('Enter a valid hostname or path, such as chatgpt.com/c.')
+            return
+        }
+
+        if (!normalizedSelector) {
+            setContainerRuleError('Enter a CSS selector for the scroll container.')
+            return
+        }
+
+        try {
+            document.createDocumentFragment().querySelector(normalizedSelector)
+        } catch {
+            setContainerRuleError('Enter a valid CSS selector.')
+            return
+        }
+
+        setContainerRuleError(null)
+        updateScrollContainerSettings(
+            /** @param {ScrollContainerSettings} current */
+            (current) =>
+                setURLPatternScrollContainerSelector(
+                    current,
+                    normalizedPattern,
+                    normalizedSelector
+                )
+        )
+        setNewContainerPattern('')
+        setNewContainerSelector('')
+    }, [newContainerPattern, newContainerSelector, updateScrollContainerSettings])
+
+    const onRemoveScrollContainerRule = useCallback(
+        /** @param {string} pattern */
+        (pattern) => {
+            updateScrollContainerSettings(
+                /** @param {ScrollContainerSettings} current */
+                (current) =>
+                removeURLPatternScrollContainerSelector(current, pattern)
+            )
+        },
+        [updateScrollContainerSettings]
+    )
+
     const hostnameEntries = Object.entries(queryIdentitySettings.perHostMode).sort(
         ([leftHostname], [rightHostname]) =>
             leftHostname.localeCompare(rightHostname)
     )
     const strategyPatternEntries = Object.entries(
         scrollStrategySettings.perURLPatternStrategy
+    ).sort(
+        ([leftPattern], [rightPattern]) =>
+            leftPattern.localeCompare(rightPattern)
+    )
+    const scrollContainerEntries = Object.entries(
+        scrollContainerSettings.perURLPatternSelector
     ).sort(
         ([leftPattern], [rightPattern]) =>
             leftPattern.localeCompare(rightPattern)
@@ -498,6 +592,97 @@ const App = () => {
                             </div>
                         `)}
                     </div>
+                </div>
+
+                <div class="settings-section">
+                    <p class="settings-section__eyebrow">Scroll Container Rules</p>
+                    <p class="settings-section__help settings-section__help--spaced">
+                        Use these only for sites where scrolling happens inside a page element instead of the document.
+                        Rules use the same hostname or path prefix matching as jump strategy rules.
+                    </p>
+
+                    <div class="settings-rule-builder">
+                        <input
+                            value=${newContainerPattern}
+                            placeholder="example.com/docs"
+                            onInput=${
+                                /** @param {InputEvent & {currentTarget: HTMLInputElement}} event */
+                                (event) => {
+                                    setNewContainerPattern(event.currentTarget.value)
+                                    setContainerRuleError(null)
+                                }
+                            }
+                            onKeyDown=${
+                                /** @param {KeyboardEvent} event */
+                                (event) => {
+                                    if (event.key !== 'Enter') return
+                                    event.preventDefault()
+                                    onAddScrollContainerRule()
+                                }
+                            }
+                            class="settings-input settings-input--fill"
+                        />
+                        <input
+                            value=${newContainerSelector}
+                            placeholder="CSS selector"
+                            onInput=${
+                                /** @param {InputEvent & {currentTarget: HTMLInputElement}} event */
+                                (event) => {
+                                    setNewContainerSelector(event.currentTarget.value)
+                                    setContainerRuleError(null)
+                                }
+                            }
+                            onKeyDown=${
+                                /** @param {KeyboardEvent} event */
+                                (event) => {
+                                    if (event.key !== 'Enter') return
+                                    event.preventDefault()
+                                    onAddScrollContainerRule()
+                                }
+                            }
+                            class="settings-input settings-input--fill"
+                        />
+                        <button
+                            type="button"
+                            onClick=${onAddScrollContainerRule}
+                            class="button button--primary settings-add-button"
+                        >
+                            Add
+                        </button>
+                    </div>
+
+                    ${containerRuleError
+                        ? html`<p class="settings-error">${containerRuleError}</p>`
+                        : null}
+
+                    ${scrollContainerEntries.length === 0
+                        ? html`
+                            <p class="settings-empty-state">No custom scroll containers yet.</p>
+                        `
+                        : html`
+                            <div class="settings-rule-list">
+                                ${scrollContainerEntries.map(([pattern, selector]) => html`
+                                    <div key=${pattern} class="settings-rule-item">
+                                        <span class="settings-rule-item__hostname">${pattern}</span>
+                                        <span
+                                            class="settings-rule-item__selector"
+                                            title=${selector}
+                                        >
+                                            ${selector}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick=${() => onRemoveScrollContainerRule(pattern)}
+                                            title="Remove scroll container rule"
+                                            aria-label=${`Remove scroll container rule for ${pattern}`}
+                                            class="icon-button settings-rule-item__remove"
+                                        >
+                                            <${Icon} icon="trashCan" className="icon icon--xs" />
+                                        </button>
+                                    </div>
+                                `)}
+                            </div>
+                        `}
                 </div>
 
                 <div class="settings-section">

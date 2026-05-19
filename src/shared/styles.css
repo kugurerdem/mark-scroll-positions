@@ -251,6 +251,7 @@ html:not([data-theme-ready='true']) body {
 .popup__actions,
 .popup__query-row,
 .popup__strategy-row,
+.popup__container-row,
 .manage-page__hero,
 .settings-card__header,
 .scroll-card__main,
@@ -323,6 +324,16 @@ html:not([data-theme-ready='true']) body {
   justify-content: space-between;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.popup__container-row {
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
 }
 
 .popup__strategy-label-wrap {
@@ -1005,6 +1016,17 @@ textarea.text-field__control {
   color: var(--color-ink-700);
   font-size: 0.75rem;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-rule-item__selector {
+  min-width: 0;
+  flex: 1.5;
+  overflow: hidden;
+  color: var(--color-ink-600);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

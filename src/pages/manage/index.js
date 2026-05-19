@@ -19,9 +19,13 @@ import {
 import {initializeTheme} from '../../shared/lib/theme.js'
 import {usePageDataState} from '../../shared/hooks/use-page-data-state.js'
 import {
+    SCROLL_CONTAINER_SETTINGS_KEY,
     SCROLL_STRATEGY_SETTINGS_KEY,
+    defaultScrollContainerSettings,
     defaultScrollStrategySettings,
+    getScrollContainerSettings,
     getScrollStrategySettings,
+    resolveScrollContainerSelector,
     resolveScrollStrategy,
 } from '../../shared/lib/preferences.js'
 
@@ -31,6 +35,7 @@ import {
 /** @typedef {import('../../shared/lib/page-store.js').ScrollDetails} ScrollDetails */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategy} ScrollStrategy */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollContainerSettings} ScrollContainerSettings */
 
 const {values} = Object
 const allOrigins = ['<all_urls>']
@@ -66,6 +71,8 @@ const App = ({pageRecordsByStorageKey}) => {
     const [pageRecords, setPageRecords] = useState(pageRecordsByStorageKey)
     const [scrollStrategySettings, setScrollStrategySettings] =
         useState(defaultScrollStrategySettings)
+    const [scrollContainerSettings, setScrollContainerSettings] =
+        useState(defaultScrollContainerSettings)
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
     const [pendingJump, setPendingJump] = useState(
         /** @type {{pageIdentity: PageIdentity, details: ScrollDetails} | null} */ (null)
@@ -83,9 +90,13 @@ const App = ({pageRecordsByStorageKey}) => {
     useEffect(() => {
         let isMounted = true
 
-        void getScrollStrategySettings().then((settings) => {
+        void Promise.all([
+            getScrollStrategySettings(),
+            getScrollContainerSettings(),
+        ]).then(([strategySettings, containerSettings]) => {
             if (isMounted) {
-                setScrollStrategySettings(settings)
+                setScrollStrategySettings(strategySettings)
+                setScrollContainerSettings(containerSettings)
             }
         })
 
@@ -96,10 +107,18 @@ const App = ({pageRecordsByStorageKey}) => {
                 setScrollStrategySettings(await getScrollStrategySettings())
             }
         )
+        const unsubscribeScrollContainerSettings = subscribeToStorageKey(
+            SCROLL_CONTAINER_SETTINGS_KEY,
+            async () => {
+                if (!isMounted) return
+                setScrollContainerSettings(await getScrollContainerSettings())
+            }
+        )
 
         return () => {
             isMounted = false
             unsubscribe()
+            unsubscribeScrollContainerSettings()
         }
     }, [])
 
@@ -118,6 +137,10 @@ const App = ({pageRecordsByStorageKey}) => {
             details,
             resolveScrollStrategy(
                 scrollStrategySettings,
+                getNavigablePageURL(pageIdentity)
+            ),
+            resolveScrollContainerSelector(
+                scrollContainerSettings,
                 getNavigablePageURL(pageIdentity)
             )
         )
@@ -156,6 +179,7 @@ const App = ({pageRecordsByStorageKey}) => {
             key=${pageRecord.identity.storageKey}
             identity=${pageRecord.identity}
             scrollStrategySettings=${scrollStrategySettings}
+            scrollContainerSettings=${scrollContainerSettings}
             onMissingPermission=${handleMissingAutoJumpPermission}
         />
     `
@@ -313,9 +337,15 @@ const requestAllSitesPermission = async () => {
  * @param {PageIdentity} pageIdentity
  * @param {ScrollDetails} scrollDetails
  * @param {ScrollStrategy} scrollStrategy
+ * @param {string | null} scrollContainerSelector
  * @returns {Promise<boolean>}
  */
-const jumpToMarkedPosition = async (pageIdentity, scrollDetails, scrollStrategy) => {
+const jumpToMarkedPosition = async (
+    pageIdentity,
+    scrollDetails,
+    scrollStrategy,
+    scrollContainerSelector
+) => {
     const tab = await chrome.tabs.create({url: getNavigablePageURL(pageIdentity)})
     if (!tab.id) return false
 
@@ -325,7 +355,7 @@ const jumpToMarkedPosition = async (pageIdentity, scrollDetails, scrollStrategy)
         await chrome.scripting.executeScript({
             target: {tabId: tab.id},
             func: jumpToScrollPosition,
-            args: [scrollDetails, scrollStrategy],
+            args: [scrollDetails, scrollStrategy, scrollContainerSelector],
         })
         return true
     } catch {
@@ -337,17 +367,27 @@ const jumpToMarkedPosition = async (pageIdentity, scrollDetails, scrollStrategy)
  * @typedef {object} PageProps
  * @property {PageIdentity} identity
  * @property {ScrollStrategySettings} scrollStrategySettings
+ * @property {ScrollContainerSettings} scrollContainerSettings
  * @property {(pageIdentity: PageIdentity, details: ScrollDetails) => void} onMissingPermission
  */
 
 /** @param {PageProps} props */
-const Page = ({identity, scrollStrategySettings, onMissingPermission}) => {
+const Page = ({
+    identity,
+    scrollStrategySettings,
+    scrollContainerSettings,
+    onMissingPermission,
+}) => {
     const [pageData, setPageData, patchScroll] = usePageDataState(identity)
     const [expand, setExpand] = useState(false)
     const [jumpError, setJumpError] = useState(/** @type {string | null} */ (null))
     const href = getNavigablePageURL(identity)
     const scrollStrategy = resolveScrollStrategy(
         scrollStrategySettings,
+        href
+    )
+    const scrollContainerSelector = resolveScrollContainerSelector(
+        scrollContainerSettings,
         href
     )
 
@@ -377,7 +417,12 @@ const Page = ({identity, scrollStrategySettings, onMissingPermission}) => {
             return
         }
 
-        const didJump = await jumpToMarkedPosition(identity, details, scrollStrategy)
+        const didJump = await jumpToMarkedPosition(
+            identity,
+            details,
+            scrollStrategy,
+            scrollContainerSelector
+        )
         if (!didJump) {
             setJumpError('Could not jump on this page.')
         }

@@ -10,8 +10,14 @@
  * @property {Record<string, ScrollStrategy>} perHostStrategy
  */
 
+/**
+ * @typedef {object} ScrollContainerSettings
+ * @property {Record<string, string>} perURLPatternSelector
+ */
+
 export const MARK_INSERT_POSITION_KEY = 'markInsertPosition'
 export const SCROLL_STRATEGY_SETTINGS_KEY = 'scrollStrategySettings'
+export const SCROLL_CONTAINER_SETTINGS_KEY = 'scrollContainerSettings'
 
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
@@ -20,6 +26,11 @@ export const defaultScrollStrategySettings = {
     globalStrategy: 'page-ratio',
     perURLPatternStrategy: {},
     perHostStrategy: {},
+}
+
+/** @type {ScrollContainerSettings} */
+export const defaultScrollContainerSettings = {
+    perURLPatternSelector: {},
 }
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
@@ -83,6 +94,22 @@ const normalizePerURLPatternStrategy = (value) => {
     }, /** @type {Record<string, ScrollStrategy>} */ ({}))
 }
 
+/** @param {unknown} value @returns {Record<string, string>} */
+const normalizePerURLPatternSelector = (value) => {
+    if (!isRecord(value)) return {}
+
+    return Object.entries(value).reduce((acc, [pattern, selector]) => {
+        const normalizedPattern = normalizeURLPattern(pattern)
+        if (!normalizedPattern || typeof selector !== 'string') return acc
+
+        const normalizedSelector = selector.trim()
+        if (!normalizedSelector) return acc
+
+        acc[normalizedPattern] = normalizedSelector
+        return acc
+    }, /** @type {Record<string, string>} */ ({}))
+}
+
 /** @param {unknown} value @returns {ScrollStrategySettings} */
 export const normalizeScrollStrategySettings = (value) => {
     if (!isRecord(value)) {
@@ -113,14 +140,28 @@ const matchesURLPattern = (pagePattern, rulePattern) => {
     return pagePattern.startsWith(rulePattern.endsWith('/') ? rulePattern : `${rulePattern}/`)
 }
 
-/** @param {ScrollStrategySettings} settings @param {string | URL} urlOrPattern @returns {ScrollStrategy} */
-export const resolveScrollStrategy = (settings, urlOrPattern) => {
+/**
+ * @param {string[]} patterns
+ * @param {string | URL} urlOrPattern
+ * @returns {string | null}
+ */
+const resolveURLPattern = (patterns, urlOrPattern) => {
     const normalizedPattern = normalizeURLPattern(String(urlOrPattern))
-    if (!normalizedPattern) return settings.globalStrategy
+    if (!normalizedPattern) return null
 
-    const [matchedPattern] = Object.keys(settings.perURLPatternStrategy)
+    const [matchedPattern] = patterns
         .filter((pattern) => matchesURLPattern(normalizedPattern, pattern))
         .sort((left, right) => right.length - left.length)
+
+    return matchedPattern || null
+}
+
+/** @param {ScrollStrategySettings} settings @param {string | URL} urlOrPattern @returns {ScrollStrategy} */
+export const resolveScrollStrategy = (settings, urlOrPattern) => {
+    const matchedPattern = resolveURLPattern(
+        Object.keys(settings.perURLPatternStrategy),
+        urlOrPattern
+    )
 
     if (
         matchedPattern &&
@@ -130,6 +171,39 @@ export const resolveScrollStrategy = (settings, urlOrPattern) => {
     }
 
     return settings.globalStrategy
+}
+
+/** @param {unknown} value @returns {ScrollContainerSettings} */
+export const normalizeScrollContainerSettings = (value) => {
+    if (!isRecord(value)) {
+        return {
+            ...defaultScrollContainerSettings,
+            perURLPatternSelector: {},
+        }
+    }
+
+    return {
+        perURLPatternSelector: normalizePerURLPatternSelector(
+            value.perURLPatternSelector
+        ),
+    }
+}
+
+/** @param {ScrollContainerSettings} settings @param {string | URL} urlOrPattern @returns {string | null} */
+export const resolveScrollContainerSelector = (settings, urlOrPattern) => {
+    const matchedPattern = resolveURLPattern(
+        Object.keys(settings.perURLPatternSelector),
+        urlOrPattern
+    )
+
+    if (
+        matchedPattern &&
+        hasOwnProperty.call(settings.perURLPatternSelector, matchedPattern)
+    ) {
+        return settings.perURLPatternSelector[matchedPattern]
+    }
+
+    return null
 }
 
 /**
@@ -214,6 +288,54 @@ export const removeURLPatternScrollStrategy = (settings, pattern) => {
 export const setHostnameScrollStrategy = setURLPatternScrollStrategy
 export const removeHostnameScrollStrategy = removeURLPatternScrollStrategy
 
+/**
+ * @param {ScrollContainerSettings} settings
+ * @param {string} pattern
+ * @param {string} selector
+ * @returns {ScrollContainerSettings}
+ */
+export const setURLPatternScrollContainerSelector = (
+    settings,
+    pattern,
+    selector
+) => {
+    const normalizedPattern = normalizeURLPattern(pattern)
+    const normalizedSelector = selector.trim()
+    if (!normalizedPattern || !normalizedSelector) return settings
+
+    return {
+        ...settings,
+        perURLPatternSelector: {
+            ...settings.perURLPatternSelector,
+            [normalizedPattern]: normalizedSelector,
+        },
+    }
+}
+
+/**
+ * @param {ScrollContainerSettings} settings
+ * @param {string} pattern
+ * @returns {ScrollContainerSettings}
+ */
+export const removeURLPatternScrollContainerSelector = (settings, pattern) => {
+    const normalizedPattern = normalizeURLPattern(pattern)
+
+    if (
+        !normalizedPattern ||
+        !hasOwnProperty.call(settings.perURLPatternSelector, normalizedPattern)
+    ) {
+        return settings
+    }
+
+    const nextPerURLPatternSelector = {...settings.perURLPatternSelector}
+    delete nextPerURLPatternSelector[normalizedPattern]
+
+    return {
+        ...settings,
+        perURLPatternSelector: nextPerURLPatternSelector,
+    }
+}
+
 /** @returns {Promise<ScrollStrategySettings>} */
 export const getScrollStrategySettings = async () => {
     const result = await chrome.storage.local.get(SCROLL_STRATEGY_SETTINGS_KEY)
@@ -224,5 +346,18 @@ export const getScrollStrategySettings = async () => {
 export const setScrollStrategySettings = async (settings) => {
     await chrome.storage.local.set({
         [SCROLL_STRATEGY_SETTINGS_KEY]: normalizeScrollStrategySettings(settings),
+    })
+}
+
+/** @returns {Promise<ScrollContainerSettings>} */
+export const getScrollContainerSettings = async () => {
+    const result = await chrome.storage.local.get(SCROLL_CONTAINER_SETTINGS_KEY)
+    return normalizeScrollContainerSettings(result[SCROLL_CONTAINER_SETTINGS_KEY])
+}
+
+/** @param {ScrollContainerSettings} settings @returns {Promise<void>} */
+export const setScrollContainerSettings = async (settings) => {
+    await chrome.storage.local.set({
+        [SCROLL_CONTAINER_SETTINGS_KEY]: normalizeScrollContainerSettings(settings),
     })
 }

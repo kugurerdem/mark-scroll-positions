@@ -6,11 +6,15 @@ import {Icon} from '../../shared/components/icons.js'
 import {createPageIdentity} from '../../shared/lib/page-identity.js'
 import {capturePageScrollSnapshot, jumpToScrollPosition} from '../../shared/lib/page-dom.js'
 import {
+    SCROLL_CONTAINER_SETTINGS_KEY,
     SCROLL_STRATEGY_SETTINGS_KEY,
+    getScrollContainerSettings,
     getScrollInsertPosition,
     getScrollStrategySettings,
+    normalizeScrollContainerSettings,
     normalizeScrollStrategySettings,
     parseScrollStrategy,
+    resolveScrollContainerSelector,
     resolveScrollStrategy,
     setURLPatternScrollStrategy,
     setScrollStrategySettings as setStoredScrollStrategySettings,
@@ -40,6 +44,7 @@ import {usePageDataState} from '../../shared/hooks/use-page-data-state.js'
 /** @typedef {import('../../shared/lib/url-identity.js').QueryIdentitySettings} QueryIdentitySettings */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategy} ScrollStrategy */
 /** @typedef {import('../../shared/lib/preferences.js').ScrollStrategySettings} ScrollStrategySettings */
+/** @typedef {import('../../shared/lib/preferences.js').ScrollContainerSettings} ScrollContainerSettings */
 /** @typedef {import('../../shared/lib/page-dom.js').PageScrollSnapshot} PageScrollSnapshot */
 
 /** @typedef {(data: PageData) => Promise<void>} SetPageData */
@@ -78,9 +83,14 @@ const main = async () => {
         throw new Error('Could not resolve the active tab URL')
     }
 
-    const [queryIdentitySettings, scrollStrategySettings] = await Promise.all([
+    const [
+        queryIdentitySettings,
+        scrollStrategySettings,
+        scrollContainerSettings,
+    ] = await Promise.all([
         getQueryIdentitySettings(),
         getScrollStrategySettings(),
+        getScrollContainerSettings(),
     ])
 
     render(
@@ -89,6 +99,7 @@ const main = async () => {
                 activeTab=${activeTab}
                 initialQueryIdentitySettings=${queryIdentitySettings}
                 initialScrollStrategySettings=${scrollStrategySettings}
+                initialScrollContainerSettings=${scrollContainerSettings}
             />
         `,
         getAppRoot()
@@ -100,6 +111,7 @@ const main = async () => {
  * @property {chrome.tabs.Tab} activeTab
  * @property {QueryIdentitySettings} initialQueryIdentitySettings
  * @property {ScrollStrategySettings} initialScrollStrategySettings
+ * @property {ScrollContainerSettings} initialScrollContainerSettings
  */
 
 /** @param {BootProps} props */
@@ -107,11 +119,14 @@ const Boot = ({
     activeTab,
     initialQueryIdentitySettings,
     initialScrollStrategySettings,
+    initialScrollContainerSettings,
 }) => {
     const [queryIdentitySettings, setQueryIdentitySettings] =
         useState(initialQueryIdentitySettings)
     const [scrollStrategySettings, setScrollStrategySettings] =
         useState(initialScrollStrategySettings)
+    const [scrollContainerSettings, setScrollContainerSettings] =
+        useState(initialScrollContainerSettings)
 
     if (!activeTab.url) {
         throw new Error('Could not resolve the active tab URL')
@@ -125,6 +140,10 @@ const Boot = ({
         hostname
     )
     const scrollStrategy = resolveScrollStrategy(scrollStrategySettings, activeURL)
+    const scrollContainerSelector = resolveScrollContainerSelector(
+        scrollContainerSettings,
+        activeURL
+    )
     const pageIdentity = createPageIdentity(activeURL, queryIdentitySettings)
     const [pageData, setPageData, patchScroll] = usePageDataState(pageIdentity)
 
@@ -137,6 +156,12 @@ const Boot = ({
     useEffect(() => {
         return subscribeToStorageKey(SCROLL_STRATEGY_SETTINGS_KEY, (change) => {
             setScrollStrategySettings(normalizeScrollStrategySettings(change.newValue))
+        })
+    }, [])
+
+    useEffect(() => {
+        return subscribeToStorageKey(SCROLL_CONTAINER_SETTINGS_KEY, (change) => {
+            setScrollContainerSettings(normalizeScrollContainerSettings(change.newValue))
         })
     }, [])
 
@@ -191,6 +216,7 @@ const Boot = ({
                 onQueryIdentityModeChange=${onQueryIdentityModeChange}
                 scrollStrategy=${scrollStrategy}
                 onScrollStrategyChange=${onScrollStrategyChange}
+                scrollContainerSelector=${scrollContainerSelector}
             />
         </${Context.Provider}>
     `
@@ -204,6 +230,7 @@ const Boot = ({
  * @property {(mode: QueryIdentityMode) => void} onQueryIdentityModeChange
  * @property {ScrollStrategy} scrollStrategy
  * @property {(strategy: ScrollStrategy) => void} onScrollStrategyChange
+ * @property {string | null} scrollContainerSelector
  */
 
 /** @param {AppProps} props */
@@ -214,6 +241,7 @@ const App = ({
     onQueryIdentityModeChange,
     scrollStrategy,
     onScrollStrategyChange,
+    scrollContainerSelector,
 }) => {
     const {activeTab, pageIdentity, pageData, setPageData} = useBootContext()
     const [autoEditScrollId, setAutoEditScrollId] = useState(
@@ -236,6 +264,7 @@ const App = ({
         const injectionResults = await chrome.scripting.executeScript({
             target: {tabId: activeTab.id},
             func: capturePageScrollSnapshot,
+            args: [scrollContainerSelector],
         })
 
         const snapshot = injectionResults[0]?.result
@@ -243,7 +272,7 @@ const App = ({
 
         const scrollDetails = await saveCurrentMark(pageIdentity, snapshot)
         setAutoEditScrollId(scrollDetails.uuid)
-    }, [activeTab.id, pageIdentity])
+    }, [activeTab.id, pageIdentity, scrollContainerSelector])
 
     const onOpenAllMarks = useCallback(async () => {
         const manageURL = chrome.runtime.getURL('src/pages/manage/index.html')
@@ -267,6 +296,7 @@ const App = ({
         <${Scroll}
             scrollDetails=${details}
             scrollStrategy=${scrollStrategy}
+            scrollContainerSelector=${scrollContainerSelector}
             autoEditName=${details.uuid === autoEditScrollId}
             onAutoEditNameHandled=${() => setAutoEditScrollId(null)}
         />
@@ -354,6 +384,19 @@ const App = ({
                     />
                 `}
 
+            ${scrollContainerSelector
+                ? html`
+                    <div
+                        class="popup__container-row"
+                        title=${`Using custom scroll container: ${scrollContainerSelector}`}
+                        aria-label=${`Using custom scroll container: ${scrollContainerSelector}`}
+                    >
+                        <span class="popup__strategy-label">Scroll container: Custom</span>
+                        <${Icon} icon="circleInfo" className="icon icon--xs" />
+                    </div>
+                `
+                : null}
+
             <div class="popup__strategy-row">
                 <span class="popup__strategy-label-wrap">
                     <span class="popup__strategy-label">This website's default</span>
@@ -392,12 +435,14 @@ const App = ({
  * @param {object} props
  * @param {ScrollDetails} props.scrollDetails
  * @param {ScrollStrategy} props.scrollStrategy
+ * @param {string | null} props.scrollContainerSelector
  * @param {boolean} [props.autoEditName]
  * @param {() => void} [props.onAutoEditNameHandled]
  */
 const Scroll = ({
     scrollDetails,
     scrollStrategy,
+    scrollContainerSelector,
     autoEditName = false,
     onAutoEditNameHandled,
 }) => {
@@ -409,7 +454,7 @@ const Scroll = ({
         void chrome.scripting.executeScript({
             target: {tabId: activeTab.id},
             func: jumpToScrollPosition,
-            args: [scrollDetails, scrollStrategy],
+            args: [scrollDetails, scrollStrategy, scrollContainerSelector],
         })
     }
 
